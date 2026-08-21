@@ -1,0 +1,35 @@
+# Firebase App Hosting configuration.
+# https://firebase.google.com/docs/app-hosting/configure
+#
+# Solo-user internal tool — kept small and cheap to run. Bump maxInstances
+# if this ever needs to handle more concurrent traffic.
+runConfig:
+  minInstances: 0
+  maxInstances: 1
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 512
+
+# Each of these must be created as a secret in Secret Manager (or via
+# `firebase apphosting:secrets:set <name>`) before deploying — see README.
+env:
+  - variable: FIREBASE_SERVICE_ACCOUNT_KEY
+    secret: FIREBASE_SERVICE_ACCOUNT_KEY
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    secret: NEXT_PUBLIC_FIREBASE_API_KEY
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    secret: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    secret: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+  - variable: MAILGUN_API_KEY
+    secret: MAILGUN_API_KEY
+  - variable: MAILGUN_DOMAIN
+    secret: MAILGUN_DOMAIN
+  - variable: STRIPE_SECRET_KEY
+    secret: STRIPE_SECRET_KEY
+  - variable: STRIPE_WEBHOOK_SECRET
+    secret: STRIPE_WEBHOOK_SECRET
+  - variable: INTAKE_API_SECRET
+    secret: INTAKE_API_SECRET
+  - variable: NOTIFY_EMAIL
+    secret: NOTIFY_EMAIL

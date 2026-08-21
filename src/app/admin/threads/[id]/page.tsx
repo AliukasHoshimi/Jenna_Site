@@ -1,0 +1,70 @@
+import { notFound } from "next/navigation";
+import { threadsCol, messagesCol, contactsCol, templatesCol } from "@/lib/firestore-collections";
+import { StatusBadge } from "@/components/status-badge";
+import { ReplyComposer } from "./reply-composer";
+import { ThreadStatusToggle } from "./thread-status-toggle";
+
+export default async function ThreadDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const threadSnap = await threadsCol().doc(id).get();
+  if (!threadSnap.exists) notFound();
+  const thread = threadSnap.data()!;
+
+  const [messagesSnap, contactSnap, templatesSnap] = await Promise.all([
+    messagesCol(id).orderBy("createdAt", "asc").get(),
+    contactsCol().doc(thread.contactId).get(),
+    templatesCol().orderBy("name", "asc").get(),
+  ]);
+
+  const contact = contactSnap.data();
+  const templates = templatesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+  return (
+    <div className="max-w-2xl">
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-xl text-foreground">{thread.subject}</h1>
+          <p className="text-sm text-muted">
+            {contact?.name} · {contact?.email}
+          </p>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <StatusBadge status={thread.status} />
+          <ThreadStatusToggle threadId={id} status={thread.status} />
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {messagesSnap.docs.map((doc) => {
+          const message = doc.data();
+          if (message.direction === "system") {
+            return (
+              <div
+                key={doc.id}
+                className="mx-auto max-w-md rounded-md bg-surface px-3 py-1.5 text-center text-xs text-muted"
+              >
+                {message.body}
+              </div>
+            );
+          }
+          const isOutbound = message.direction === "outbound";
+          return (
+            <div
+              key={doc.id}
+              className={`max-w-md whitespace-pre-wrap rounded-lg border border-border p-3 text-sm ${
+                isOutbound ? "ml-auto bg-accent/5" : "bg-surface"
+              }`}
+            >
+              {message.body}
+            </div>
+          );
+        })}
+        {messagesSnap.empty && <p className="text-sm text-muted">No messages yet.</p>}
+      </div>
+
+      <div className="mt-6">
+        <ReplyComposer threadId={id} contactName={contact?.name ?? ""} templates={templates} />
+      </div>
+    </div>
+  );
+}

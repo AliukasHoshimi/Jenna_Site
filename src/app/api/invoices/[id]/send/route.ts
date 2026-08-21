@@ -1,0 +1,78 @@
+import { NextRequest, NextResponse } from "next/server";
+import { FieldValue } from "firebase-admin/firestore";
+import { requireAuth } from "@/lib/auth/require-auth";
+import { invoicesCol, contactsCol } from "@/lib/firestore-collections";
+import { stripe } from "@/lib/stripe";
+import { sendEmail } from "@/lib/mailgun";
+import { renderInvoicePdf } from "@/lib/pdf/render-invoice-pdf";
+
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { user, response } = await requireAuth();
+  if (!user) return response;
+
+  const { id } = await params;
+  const invoiceRef = invoicesCol().doc(id);
+  const invoiceSnap = await invoiceRef.get();
+  if (!invoiceSnap.exists) {
+    return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+  }
+  const invoice = invoiceSnap.data()!;
+
+  const contactSnap = await contactsCol().doc(invoice.contactId).get();
+  const contact = contactSnap.data();
+  if (!contact) {
+    return NextResponse.json({ error: "Contact not found" }, { status: 404 });
+  }
+
+  let checkoutUrl = invoice.stripeCheckoutUrl;
+  let checkoutSessionId = invoice.stripeCheckoutSessionId;
+
+  try {
+    if (!checkoutSessionId) {
+      const origin = request.nextUrl.origin;
+      const session = await stripe().checkout.sessions.create({
+        mode: "payment",
+        customer_email: contact.email,
+        line_items: invoice.lineItems.map((item) => ({
+          price_data: {
+            currency: invoice.currency,
+            unit_amount: Math.round(item.amount * 100),
+            product_data: { name: item.description },
+          },
+          quantity: 1,
+        })),
+        metadata: { invoiceId: id, invoiceNumber: invoice.invoiceNumber },
+        success_url: `${origin}/admin/invoices/${id}?paid=1`,
+        cancel_url: `${origin}/admin/invoices/${id}`,
+      });
+      checkoutUrl = session.url;
+      checkoutSessionId = session.id;
+    }
+
+    const pdfBuffer = await renderInvoicePdf({ ...invoice, stripeCheckoutUrl: checkoutUrl }, contact);
+
+    await sendEmail({
+      to: contact.email,
+      subject: `Invoice #${invoice.invoiceNumber} from Samsarafilmss`,
+      text: `Hi ${contact.name},\n\nYour invoice #${invoice.invoiceNumber} for ${invoice.currency.toUpperCase()} ${invoice.amountTotal.toFixed(
+        2
+      )} is attached. You can pay securely here:\n${checkoutUrl}\n\nThanks,\nJenna`,
+      replyTo: `studio@${process.env.MAILGUN_DOMAIN}`,
+      attachment: [{ filename: `invoice-${invoice.invoiceNumber}.pdf`, data: pdfBuffer }],
+    });
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Could not send invoice" },
+      { status: 502 }
+    );
+  }
+
+  await invoiceRef.update({
+    status: "sent",
+    stripeCheckoutSessionId: checkoutSessionId,
+    stripeCheckoutUrl: checkoutUrl,
+    sentAt: FieldValue.serverTimestamp(),
+  });
+
+  return NextResponse.json({ ok: true, checkoutUrl });
+}
