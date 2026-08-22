@@ -3,15 +3,14 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { QuestionEditor, type EditableQuestion } from "@/components/question-editor";
+import { QuestionPicker } from "@/components/question-picker";
 
 export function QuestionnaireTemplateForm() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [title, setTitle] = useState("");
-  const [questions, setQuestions] = useState<EditableQuestion[]>([
-    { id: crypto.randomUUID(), label: "", type: "short" },
-  ]);
+  const [questions, setQuestions] = useState<EditableQuestion[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,7 +33,7 @@ export function QuestionnaireTemplateForm() {
       setOpen(false);
       setName("");
       setTitle("");
-      setQuestions([{ id: crypto.randomUUID(), label: "", type: "short" }]);
+      setQuestions([]);
       router.refresh();
     } else {
       const data = await res.json().catch(() => ({}));
@@ -69,7 +68,14 @@ export function QuestionnaireTemplateForm() {
         onChange={(e) => setTitle(e.target.value)}
         className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
       />
-      <QuestionEditor questions={questions} onChange={setQuestions} />
+      <div>
+        <label className="mb-2 block text-sm text-muted">Pick from common questions</label>
+        <QuestionPicker questions={questions} onChange={setQuestions} />
+      </div>
+      <div>
+        <label className="mb-2 block text-sm text-muted">Selected questions (edit, reorder, or add your own)</label>
+        <QuestionEditor questions={questions} onChange={setQuestions} />
+      </div>
       {error && <p className="text-sm text-warm">{error}</p>}
       <div className="flex gap-2">
         <button

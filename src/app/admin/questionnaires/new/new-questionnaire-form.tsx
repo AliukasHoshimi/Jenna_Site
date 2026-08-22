@@ -3,6 +3,8 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { QuestionEditor, type EditableQuestion } from "@/components/question-editor";
+import { QuestionPicker } from "@/components/question-picker";
+import { ContactSearchSelect } from "@/components/contact-search-select";
 
 interface ContactOption {
   id: string;
@@ -31,9 +33,7 @@ export function NewQuestionnaireForm({
   const router = useRouter();
   const [contactId, setContactId] = useState(defaultContactId ?? "");
   const [title, setTitle] = useState("");
-  const [questions, setQuestions] = useState<EditableQuestion[]>([
-    { id: crypto.randomUUID(), label: "", type: "short" },
-  ]);
+  const [questions, setQuestions] = useState<EditableQuestion[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -76,21 +76,7 @@ export function NewQuestionnaireForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="mb-1 block text-sm text-muted">Client</label>
-        <select
-          required
-          value={contactId}
-          onChange={(e) => setContactId(e.target.value)}
-          className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
-        >
-          <option value="" disabled>
-            Select a client…
-          </option>
-          {contacts.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name} — {c.email}
-            </option>
-          ))}
-        </select>
+        <ContactSearchSelect contacts={contacts} value={contactId} onChange={setContactId} />
       </div>
 
       {templates.length > 0 && (
@@ -124,7 +110,12 @@ export function NewQuestionnaireForm({
       </div>
 
       <div>
-        <label className="mb-2 block text-sm text-muted">Questions</label>
+        <label className="mb-2 block text-sm text-muted">Pick from common questions</label>
+        <QuestionPicker questions={questions} onChange={setQuestions} />
+      </div>
+
+      <div>
+        <label className="mb-2 block text-sm text-muted">Selected questions (edit, reorder, or add your own)</label>
         <QuestionEditor questions={questions} onChange={setQuestions} />
       </div>
 

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { QuestionEditor, type EditableQuestion } from "@/components/question-editor";
+import { QuestionPicker } from "@/components/question-picker";
 
 interface QuestionnaireTemplate {
   id: string;
@@ -51,6 +52,7 @@ export function QuestionnaireTemplateRow({ template }: { template: Questionnaire
           onChange={(e) => setTitle(e.target.value)}
           className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
         />
+        <QuestionPicker questions={questions} onChange={setQuestions} />
         <QuestionEditor questions={questions} onChange={setQuestions} />
         <div className="flex gap-2">
           <button
