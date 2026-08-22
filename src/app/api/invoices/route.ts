@@ -14,12 +14,13 @@ export async function POST(request: NextRequest) {
   if (!user) return response;
 
   const payload = await request.json();
-  const { contactId, threadId, lineItems, dueDate, currency } = payload as {
+  const { contactId, threadId, lineItems, dueDate, currency, depositAmount } = payload as {
     contactId: string;
     threadId?: string | null;
     lineItems: LineItemInput[];
     dueDate: string;
     currency?: string;
+    depositAmount?: number | null;
   };
 
   if (!contactId || !Array.isArray(lineItems) || lineItems.length === 0 || !dueDate) {
@@ -36,6 +37,12 @@ export async function POST(request: NextRequest) {
   }
 
   const amountTotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
+  if (depositAmount != null && (depositAmount <= 0 || depositAmount >= amountTotal)) {
+    return NextResponse.json(
+      { error: "Deposit must be a positive amount less than the total" },
+      { status: 400 }
+    );
+  }
   const invoiceNumber = await nextInvoiceNumber();
 
   const docRef = await invoicesCol().add({
@@ -52,6 +59,10 @@ export async function POST(request: NextRequest) {
     createdAt: FieldValue.serverTimestamp() as unknown as Timestamp,
     sentAt: null,
     paidAt: null,
+    lastReminderSentAt: null,
+    depositAmount: depositAmount ?? null,
+    depositPaidAt: null,
+    depositStripeCheckoutSessionId: null,
   });
 
   return NextResponse.json({ ok: true, id: docRef.id, invoiceNumber });

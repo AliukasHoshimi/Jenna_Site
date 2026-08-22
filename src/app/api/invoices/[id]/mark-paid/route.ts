@@ -4,7 +4,8 @@ import { requireAuth } from "@/lib/auth/require-auth";
 import { invoicesCol, messagesCol, threadsCol } from "@/lib/firestore-collections";
 
 // For payments that land outside Stripe (cash, check, Venmo, etc). Mirrors
-// what the Stripe webhook does on checkout.session.completed.
+// what the Stripe webhook does on checkout.session.completed, including
+// the deposit-vs-final branching for deposit-flow invoices.
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { user, response } = await requireAuth();
   if (!user) return response;
@@ -20,16 +21,31 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: "Invoice is already paid" }, { status: 400 });
   }
 
-  await invoiceRef.update({ status: "paid", paidAt: FieldValue.serverTimestamp() });
+  const isDepositStage = invoice.depositAmount != null && !invoice.depositPaidAt;
 
-  if (invoice.threadId) {
-    await messagesCol(invoice.threadId).add({
-      direction: "system",
-      body: `Invoice #${invoice.invoiceNumber} — paid, ${invoice.currency.toUpperCase()} ${invoice.amountTotal.toFixed(2)} (marked paid manually)`,
-      mailgunMessageId: null,
-      createdAt: FieldValue.serverTimestamp(),
-    });
-    await threadsCol().doc(invoice.threadId).update({ lastMessageAt: FieldValue.serverTimestamp() });
+  if (isDepositStage) {
+    await invoiceRef.update({ status: "deposit_paid", depositPaidAt: FieldValue.serverTimestamp() });
+    if (invoice.threadId) {
+      await messagesCol(invoice.threadId).add({
+        direction: "system",
+        body: `Invoice #${invoice.invoiceNumber} — deposit paid, ${invoice.currency.toUpperCase()} ${invoice.depositAmount!.toFixed(2)} (marked paid manually, balance due later)`,
+        mailgunMessageId: null,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+      await threadsCol().doc(invoice.threadId).update({ lastMessageAt: FieldValue.serverTimestamp() });
+    }
+  } else {
+    const amountPaid = invoice.depositAmount != null ? invoice.amountTotal - invoice.depositAmount : invoice.amountTotal;
+    await invoiceRef.update({ status: "paid", paidAt: FieldValue.serverTimestamp() });
+    if (invoice.threadId) {
+      await messagesCol(invoice.threadId).add({
+        direction: "system",
+        body: `Invoice #${invoice.invoiceNumber} — paid, ${invoice.currency.toUpperCase()} ${amountPaid.toFixed(2)} (marked paid manually)`,
+        mailgunMessageId: null,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+      await threadsCol().doc(invoice.threadId).update({ lastMessageAt: FieldValue.serverTimestamp() });
+    }
   }
 
   return NextResponse.json({ ok: true });

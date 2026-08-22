@@ -5,6 +5,7 @@ const STYLES: Record<string, string> = {
   sent: "bg-accent/10 text-accent",
   paid: "bg-success/10 text-success",
   signed: "bg-success/10 text-success",
+  deposit_paid: "bg-accent/10 text-accent",
   overdue: "bg-warm/10 text-warm",
 };
 
@@ -15,7 +16,7 @@ export function StatusBadge({ status }: { status: string }) {
         STYLES[status] ?? "bg-muted/10 text-muted"
       }`}
     >
-      {status}
+      {status.replace(/_/g, " ")}
     </span>
   );
 }

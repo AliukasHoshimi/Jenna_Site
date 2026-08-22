@@ -121,6 +121,8 @@ interface InvoicePdfProps {
   amountTotal: number;
   currency: string;
   checkoutUrl: string | null;
+  depositAmount?: number;
+  depositStage?: "deposit" | "balance";
 }
 
 function formatMoney(amount: number, currency: string) {
@@ -176,11 +178,45 @@ export function InvoicePdf(props: InvoicePdfProps) {
               <Text style={styles.totalsLabel}>Total</Text>
               <Text style={styles.totalsValue}>{formatMoney(props.amountTotal, props.currency)}</Text>
             </View>
+            {props.depositAmount != null && props.depositStage === "deposit" && (
+              <>
+                <View style={styles.totalsRow}>
+                  <Text style={styles.totalsLabel}>Deposit due now</Text>
+                  <Text style={styles.totalsValue}>{formatMoney(props.depositAmount, props.currency)}</Text>
+                </View>
+                <View style={styles.totalsRow}>
+                  <Text style={[styles.totalsLabel, { color: colors.muted }]}>Balance due later</Text>
+                  <Text style={[styles.totalsValue, { color: colors.muted }]}>
+                    {formatMoney(props.amountTotal - props.depositAmount, props.currency)}
+                  </Text>
+                </View>
+              </>
+            )}
+            {props.depositAmount != null && props.depositStage === "balance" && (
+              <>
+                <View style={styles.totalsRow}>
+                  <Text style={[styles.totalsLabel, { color: colors.muted }]}>Deposit paid</Text>
+                  <Text style={[styles.totalsValue, { color: colors.muted }]}>
+                    {formatMoney(props.depositAmount, props.currency)}
+                  </Text>
+                </View>
+                <View style={styles.totalsRow}>
+                  <Text style={styles.totalsLabel}>Balance due now</Text>
+                  <Text style={styles.totalsValue}>
+                    {formatMoney(props.amountTotal - props.depositAmount, props.currency)}
+                  </Text>
+                </View>
+              </>
+            )}
           </View>
 
           {props.checkoutUrl && (
             <Link src={props.checkoutUrl} style={styles.payButton}>
-              Pay Now
+              {props.depositStage === "deposit"
+                ? "Pay Deposit Now"
+                : props.depositStage === "balance"
+                  ? "Pay Balance Now"
+                  : "Pay Now"}
             </Link>
           )}
         </View>

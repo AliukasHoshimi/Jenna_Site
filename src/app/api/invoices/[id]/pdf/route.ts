@@ -19,7 +19,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: "Contact not found" }, { status: 404 });
   }
 
-  const pdfBuffer = await renderInvoicePdf(invoice, contact);
+  const depositInfo: { depositAmount: number; stage: "deposit" | "balance" } | undefined =
+    invoice.depositAmount != null
+      ? { depositAmount: invoice.depositAmount, stage: invoice.depositPaidAt ? "balance" : "deposit" }
+      : undefined;
+  const pdfBuffer = await renderInvoicePdf(invoice, contact, depositInfo);
 
   return new NextResponse(new Uint8Array(pdfBuffer), {
     headers: {

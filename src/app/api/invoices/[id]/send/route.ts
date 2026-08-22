@@ -27,6 +27,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   let checkoutUrl = invoice.stripeCheckoutUrl;
   let checkoutSessionId = invoice.stripeCheckoutSessionId;
+  const isDeposit = invoice.depositAmount != null;
+  const amountDue = isDeposit ? invoice.depositAmount! : invoice.amountTotal;
 
   try {
     if (!checkoutSessionId) {
@@ -34,14 +36,25 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const session = await stripe().checkout.sessions.create({
         mode: "payment",
         customer_email: contact.email,
-        line_items: invoice.lineItems.map((item) => ({
-          price_data: {
-            currency: invoice.currency,
-            unit_amount: Math.round(item.amount * 100),
-            product_data: { name: item.description },
-          },
-          quantity: 1,
-        })),
+        line_items: isDeposit
+          ? [
+              {
+                price_data: {
+                  currency: invoice.currency,
+                  unit_amount: Math.round(amountDue * 100),
+                  product_data: { name: `Deposit — Invoice #${invoice.invoiceNumber}` },
+                },
+                quantity: 1,
+              },
+            ]
+          : invoice.lineItems.map((item) => ({
+              price_data: {
+                currency: invoice.currency,
+                unit_amount: Math.round(item.amount * 100),
+                product_data: { name: item.description },
+              },
+              quantity: 1,
+            })),
         metadata: { invoiceId: id, invoiceNumber: invoice.invoiceNumber },
         success_url: `${origin}/admin/invoices/${id}?paid=1`,
         cancel_url: `${origin}/admin/invoices/${id}`,
@@ -50,7 +63,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       checkoutSessionId = session.id;
     }
 
-    const pdfBuffer = await renderInvoicePdf({ ...invoice, stripeCheckoutUrl: checkoutUrl }, contact);
+    const pdfBuffer = await renderInvoicePdf(
+      { ...invoice, stripeCheckoutUrl: checkoutUrl },
+      contact,
+      isDeposit ? { depositAmount: amountDue, stage: "deposit" } : undefined
+    );
 
     // If this invoice is tied to a thread, route replies back into that
     // conversation instead of a generic address.
@@ -61,21 +78,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       if (thread) replyTo = replyAddressForToken(thread.replyToken);
     }
 
-    const emailText = `Hi ${contact.name},\n\nYour invoice #${invoice.invoiceNumber} for ${invoice.currency.toUpperCase()} ${invoice.amountTotal.toFixed(
-      2
-    )} is attached. You can pay securely here:\n${checkoutUrl}\n\nThanks,\nJenna`;
+    const amountLabel = isDeposit
+      ? `a deposit of ${invoice.currency.toUpperCase()} ${amountDue.toFixed(2)} (total ${invoice.currency.toUpperCase()} ${invoice.amountTotal.toFixed(2)}, balance due later)`
+      : `${invoice.currency.toUpperCase()} ${invoice.amountTotal.toFixed(2)}`;
+    const emailText = `Hi ${contact.name},\n\nYour invoice #${invoice.invoiceNumber} is attached — ${amountLabel} is due now. You can pay securely here:\n${checkoutUrl}\n\nThanks,\nJenna`;
 
     await sendEmail({
       to: contact.email,
       from: `Samsarafilmss Billing <${process.env.MAILGUN_FROM_INVOICES}>`,
       subject: `Invoice #${invoice.invoiceNumber} from Samsarafilmss`,
       text: emailText,
-      html: renderEmailHtml(
-        `Hi ${contact.name},\n\nYour invoice #${invoice.invoiceNumber} for ${invoice.currency.toUpperCase()} ${invoice.amountTotal.toFixed(
-          2
-        )} is attached.`,
-        { ctaLabel: "Pay now", ctaUrl: checkoutUrl ?? undefined }
-      ),
+      html: renderEmailHtml(`Hi ${contact.name},\n\nYour invoice #${invoice.invoiceNumber} is attached — ${amountLabel} is due now.`, {
+        ctaLabel: "Pay now",
+        ctaUrl: checkoutUrl ?? undefined,
+      }),
       replyTo,
       attachment: [{ filename: `invoice-${invoice.invoiceNumber}.pdf`, data: pdfBuffer }],
     });

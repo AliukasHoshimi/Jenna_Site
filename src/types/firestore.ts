@@ -44,7 +44,11 @@ export interface Template {
   createdAt: Timestamp;
 }
 
-export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue";
+// "overdue" is derived at render time (see displayInvoiceStatus), never
+// stored. "deposit_paid" sits between two "sent" states: sent (deposit
+// checkout outstanding) -> deposit_paid -> sent (balance checkout
+// outstanding, once Jenna sends it) -> paid.
+export type InvoiceStatus = "draft" | "sent" | "deposit_paid" | "paid" | "overdue";
 
 export interface LineItem {
   description: string;
@@ -59,12 +63,23 @@ export interface Invoice {
   amountTotal: number;
   currency: string;
   status: InvoiceStatus;
+  // The currently-outstanding Stripe Checkout Session — the deposit's
+  // session while awaiting deposit payment, then overwritten with the
+  // balance's session once the balance invoice is sent.
   stripeCheckoutSessionId: string | null;
   stripeCheckoutUrl: string | null;
   dueDate: Timestamp;
   createdAt: Timestamp;
   sentAt: Timestamp | null;
   paidAt: Timestamp | null;
+  // Throttles the overdue-reminder cron so it nudges periodically rather
+  // than emailing the client every single day it stays unpaid.
+  lastReminderSentAt: Timestamp | null;
+  // Optional deposit-then-balance flow. Null depositAmount means this
+  // invoice behaves exactly as a single full-amount invoice always has.
+  depositAmount: number | null;
+  depositPaidAt: Timestamp | null;
+  depositStripeCheckoutSessionId: string | null;
 }
 
 export interface ContractTemplate {

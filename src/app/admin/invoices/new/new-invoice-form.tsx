@@ -25,6 +25,7 @@ export function NewInvoiceForm({
   const [contactId, setContactId] = useState(defaultContactId ?? "");
   const [dueDate, setDueDate] = useState("");
   const [lineItems, setLineItems] = useState<LineItemRow[]>([{ description: "", amount: "" }]);
+  const [depositAmount, setDepositAmount] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,12 +58,23 @@ export function NewInvoiceForm({
       setError("Add at least one line item with a positive amount.");
       return;
     }
+    const parsedDeposit = depositAmount.trim() ? parseFloat(depositAmount) : null;
+    if (parsedDeposit != null && (!parsedDeposit || parsedDeposit <= 0 || parsedDeposit >= total)) {
+      setError("Deposit must be a positive amount less than the total.");
+      return;
+    }
 
     setSubmitting(true);
     const res = await fetch("/api/invoices", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contactId, dueDate, lineItems: parsedItems, currency: "usd" }),
+      body: JSON.stringify({
+        contactId,
+        dueDate,
+        lineItems: parsedItems,
+        currency: "usd",
+        depositAmount: parsedDeposit,
+      }),
     });
     const data = await res.json();
     setSubmitting(false);
@@ -142,8 +154,31 @@ export function NewInvoiceForm({
         </button>
       </div>
 
+      <div>
+        <label className="mb-1 block text-sm text-muted">
+          Deposit amount <span className="text-muted/70">(optional — leave blank for full payment)</span>
+        </label>
+        <input
+          placeholder="e.g. 200"
+          type="number"
+          min="0"
+          step="0.01"
+          value={depositAmount}
+          onChange={(e) => setDepositAmount(e.target.value)}
+          className="w-40 rounded-md border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+        />
+      </div>
+
       <p className="text-sm text-muted">
         Total: <span className="font-medium text-foreground">${total.toFixed(2)}</span>
+        {depositAmount.trim() && !isNaN(parseFloat(depositAmount)) && (
+          <>
+            {" "}
+            · Deposit due now:{" "}
+            <span className="font-medium text-foreground">${parseFloat(depositAmount).toFixed(2)}</span> · Balance
+            later: <span className="font-medium text-foreground">${(total - parseFloat(depositAmount)).toFixed(2)}</span>
+          </>
+        )}
       </p>
 
       {error && <p className="text-sm text-warm">{error}</p>}
