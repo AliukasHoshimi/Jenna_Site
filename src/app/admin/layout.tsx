@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth/session";
 import { LogoutButton } from "@/components/logout-button";
-import { threadsCol, invoicesCol } from "@/lib/firestore-collections";
+import { threadsCol, invoicesCol, contractsCol } from "@/lib/firestore-collections";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   // Every /admin route is protected here: no nested page renders until the
@@ -10,9 +10,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const [openThreadsSnap, awaitingPaymentSnap] = await Promise.all([
+  const [openThreadsSnap, awaitingPaymentSnap, awaitingSignatureSnap] = await Promise.all([
     threadsCol().where("status", "==", "open").get(),
     invoicesCol().where("status", "in", ["sent", "overdue"]).get(),
+    contractsCol().where("status", "==", "sent").get(),
   ]);
   const needsReplyCount = openThreadsSnap.docs.filter(
     (d) => d.data().lastMessageDirection === "inbound"
@@ -22,6 +23,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     { href: "/admin/threads", label: "Inbox", count: needsReplyCount },
     { href: "/admin/contacts", label: "Contacts", count: 0 },
     { href: "/admin/invoices", label: "Invoices", count: awaitingPaymentSnap.size },
+    { href: "/admin/contracts", label: "Contracts", count: awaitingSignatureSnap.size },
     { href: "/admin/templates", label: "Templates", count: 0 },
   ];
 

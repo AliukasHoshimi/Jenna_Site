@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { contactsCol, threadsCol, invoicesCol } from "@/lib/firestore-collections";
+import { contactsCol, threadsCol, invoicesCol, contractsCol } from "@/lib/firestore-collections";
 import { StatusBadge } from "@/components/status-badge";
 import { NewThreadForm } from "./new-thread-form";
 import { ContactHeader } from "./contact-header";
@@ -11,9 +11,10 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
   if (!contactSnap.exists) notFound();
   const contact = contactSnap.data()!;
 
-  const [threadsSnap, invoicesSnap] = await Promise.all([
+  const [threadsSnap, invoicesSnap, contractsSnap] = await Promise.all([
     threadsCol().where("contactId", "==", id).orderBy("lastMessageAt", "desc").get(),
     invoicesCol().where("contactId", "==", id).orderBy("createdAt", "desc").get(),
+    contractsCol().where("contactId", "==", id).orderBy("createdAt", "desc").get(),
   ]);
 
   return (
@@ -35,6 +36,12 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
           className="rounded-md border border-border bg-surface px-4 py-2 text-sm hover:border-accent"
         >
           New invoice
+        </Link>
+        <Link
+          href={`/admin/contracts/new?contactId=${id}`}
+          className="rounded-md border border-border bg-surface px-4 py-2 text-sm hover:border-accent"
+        >
+          New contract
         </Link>
       </div>
 
@@ -73,6 +80,26 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
               >
                 <span className="text-sm text-foreground">#{invoice.invoiceNumber}</span>
                 <StatusBadge status={invoice.status} />
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="mt-8">
+        <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-muted">Contracts</h2>
+        <div className="divide-y divide-border rounded-lg border border-border bg-surface">
+          {contractsSnap.empty && <p className="p-4 text-sm text-muted">No contracts yet.</p>}
+          {contractsSnap.docs.map((doc) => {
+            const contract = doc.data();
+            return (
+              <Link
+                key={doc.id}
+                href={`/admin/contracts/${doc.id}`}
+                className="flex items-center justify-between px-4 py-3 hover:bg-background"
+              >
+                <span className="text-sm text-foreground">{contract.title}</span>
+                <StatusBadge status={contract.status} />
               </Link>
             );
           })}

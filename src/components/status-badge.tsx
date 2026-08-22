@@ -4,6 +4,7 @@ const STYLES: Record<string, string> = {
   draft: "bg-muted/10 text-muted",
   sent: "bg-accent/10 text-accent",
   paid: "bg-success/10 text-success",
+  signed: "bg-success/10 text-success",
   overdue: "bg-warm/10 text-warm",
 };
 

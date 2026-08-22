@@ -4,7 +4,15 @@ import type {
   QueryDocumentSnapshot,
 } from "firebase-admin/firestore";
 import { adminDb } from "@/lib/firebase/admin";
-import type { Contact, Thread, Message, Template, Invoice } from "@/types/firestore";
+import type {
+  Contact,
+  Thread,
+  Message,
+  Template,
+  Invoice,
+  ContractTemplate,
+  Contract,
+} from "@/types/firestore";
 
 function converter<T extends FirebaseFirestore.DocumentData>(): FirestoreDataConverter<T> {
   return {
@@ -31,4 +39,12 @@ export function templatesCol() {
 
 export function invoicesCol() {
   return adminDb().collection("invoices").withConverter(converter<Invoice>());
+}
+
+export function contractTemplatesCol() {
+  return adminDb().collection("contractTemplates").withConverter(converter<ContractTemplate>());
+}
+
+export function contractsCol() {
+  return adminDb().collection("contracts").withConverter(converter<Contract>());
 }

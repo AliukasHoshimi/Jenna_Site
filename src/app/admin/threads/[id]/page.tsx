@@ -42,6 +42,12 @@ export default async function ThreadDetailPage({ params }: { params: Promise<{ i
             >
               New invoice
             </Link>
+            <Link
+              href={`/admin/contracts/new?contactId=${thread.contactId}&threadId=${id}`}
+              className="text-xs text-accent hover:underline"
+            >
+              New contract
+            </Link>
             <ThreadStatusToggle threadId={id} status={thread.status} />
           </div>
         </div>

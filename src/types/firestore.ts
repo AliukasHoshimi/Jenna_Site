@@ -66,3 +66,28 @@ export interface Invoice {
   sentAt: Timestamp | null;
   paidAt: Timestamp | null;
 }
+
+export interface ContractTemplate {
+  name: string;
+  title: string;
+  body: string;
+  createdAt: Timestamp;
+}
+
+export type ContractStatus = "draft" | "sent" | "signed";
+
+export interface Contract {
+  contactId: string;
+  threadId: string | null;
+  title: string;
+  body: string;
+  status: ContractStatus;
+  // Unique token for the public /sign/[token] link — same pattern as a
+  // thread's replyToken.
+  signToken: string;
+  signerName: string | null;
+  signedAt: Timestamp | null;
+  signedIp: string | null;
+  createdAt: Timestamp;
+  sentAt: Timestamp | null;
+}
