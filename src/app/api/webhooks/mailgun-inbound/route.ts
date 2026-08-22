@@ -34,7 +34,10 @@ export async function POST(request: NextRequest) {
   const sender = String(form.get("from") ?? form.get("sender") ?? "");
   const recipient = String(form.get("recipient") ?? "");
   const subject = String(form.get("subject") ?? "(no subject)");
-  const bodyPlain = String(form.get("body-plain") ?? form.get("stripped-text") ?? "");
+  // Prefer Mailgun's "stripped-text" (quoted reply history and signatures
+  // removed) over the raw "body-plain", which includes the entire quoted
+  // chain and would otherwise clutter every reply in the thread view.
+  const bodyPlain = String(form.get("stripped-text") ?? form.get("body-plain") ?? "");
   const messageId = form.get("Message-Id") ? String(form.get("Message-Id")) : null;
 
   const senderEmail = extractEmail(sender);
