@@ -73,15 +73,21 @@ const noSpinnerClass =
 export function NewInvoiceForm({
   contacts,
   defaultContactId,
+  defaultLineItems,
+  defaultDepositAmount,
 }: {
   contacts: ContactOption[];
   defaultContactId?: string;
+  defaultLineItems?: LineItemRow[];
+  defaultDepositAmount?: string;
 }) {
   const router = useRouter();
   const [contactId, setContactId] = useState(defaultContactId ?? "");
   const [dueDate, setDueDate] = useState("");
-  const [lineItems, setLineItems] = useState<LineItemRow[]>([{ description: "", amount: "" }]);
-  const [depositAmount, setDepositAmount] = useState("");
+  const [lineItems, setLineItems] = useState<LineItemRow[]>(
+    defaultLineItems && defaultLineItems.length > 0 ? defaultLineItems : [{ description: "", amount: "" }]
+  );
+  const [depositAmount, setDepositAmount] = useState(defaultDepositAmount ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

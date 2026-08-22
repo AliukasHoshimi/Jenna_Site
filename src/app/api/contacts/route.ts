@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
     source: source || "manual",
     createdAt: FieldValue.serverTimestamp() as unknown as Timestamp,
     lastActivityAt: FieldValue.serverTimestamp() as unknown as Timestamp,
+    bookingStage: "inquiry",
   });
 
   return NextResponse.json({ ok: true, id: docRef.id });

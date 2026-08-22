@@ -10,7 +10,15 @@ interface ContactData {
   phone: string | null;
   instagram: string | null;
   source: string;
+  bookingStage: string;
 }
+
+const STAGE_LABELS: Record<string, string> = {
+  inquiry: "Inquiry",
+  booked: "Booked",
+  active: "Active",
+  delivered: "Delivered",
+};
 
 export function ContactHeader({ contact }: { contact: ContactData }) {
   const router = useRouter();
@@ -19,6 +27,7 @@ export function ContactHeader({ contact }: { contact: ContactData }) {
   const [phone, setPhone] = useState(contact.phone ?? "");
   const [instagram, setInstagram] = useState(contact.instagram ?? "");
   const [source, setSource] = useState(contact.source);
+  const [stageBusy, setStageBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,6 +51,23 @@ export function ContactHeader({ contact }: { contact: ContactData }) {
       const data = await res.json().catch(() => ({}));
       setError(data.error ?? "Could not save changes.");
     }
+  }
+
+  async function handleStageChange(newStage: string) {
+    setStageBusy(true);
+    await fetch(`/api/contacts/${contact.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: contact.name,
+        phone: contact.phone,
+        instagram: contact.instagram,
+        source: contact.source,
+        bookingStage: newStage,
+      }),
+    });
+    setStageBusy(false);
+    router.refresh();
   }
 
   if (editing) {
@@ -115,12 +141,26 @@ export function ContactHeader({ contact }: { contact: ContactData }) {
         {contact.phone && <p className="text-sm text-muted">{contact.phone}</p>}
         {contact.instagram && <p className="text-sm text-muted">@{contact.instagram}</p>}
       </div>
-      <button
-        onClick={() => setEditing(true)}
-        className="rounded-md border border-border bg-surface px-3 py-1.5 text-sm text-foreground hover:border-accent"
-      >
-        Edit
-      </button>
+      <div className="flex items-center gap-2">
+        <select
+          value={contact.bookingStage}
+          disabled={stageBusy}
+          onChange={(e) => handleStageChange(e.target.value)}
+          className="rounded-md border border-border bg-surface px-2 py-1.5 text-sm text-foreground outline-none focus:border-accent disabled:opacity-60"
+        >
+          {Object.entries(STAGE_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <button
+          onClick={() => setEditing(true)}
+          className="rounded-md border border-border bg-surface px-3 py-1.5 text-sm text-foreground hover:border-accent"
+        >
+          Edit
+        </button>
+      </div>
     </div>
   );
 }

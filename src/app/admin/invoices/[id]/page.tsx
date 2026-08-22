@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { invoicesCol, contactsCol } from "@/lib/firestore-collections";
 import { StatusBadge } from "@/components/status-badge";
@@ -75,6 +76,12 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
         >
           View PDF
         </a>
+        <Link
+          href={`/admin/invoices/new?duplicateFrom=${id}`}
+          className="rounded-md border border-border bg-surface px-4 py-2 text-sm hover:border-accent"
+        >
+          Duplicate
+        </Link>
         {invoice.stripeCheckoutUrl && (
           <a
             href={invoice.stripeCheckoutUrl}

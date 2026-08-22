@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
       source,
       createdAt: FieldValue.serverTimestamp() as unknown as Timestamp,
       lastActivityAt: FieldValue.serverTimestamp() as unknown as Timestamp,
+      bookingStage: "inquiry",
     });
     contactId = newContact.id;
   }

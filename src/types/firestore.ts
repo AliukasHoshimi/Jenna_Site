@@ -1,5 +1,7 @@
 import type { Timestamp } from "firebase-admin/firestore";
 
+export type BookingStage = "inquiry" | "booked" | "active" | "delivered";
+
 export interface Contact {
   name: string;
   email: string;
@@ -10,6 +12,7 @@ export interface Contact {
   // Most recent activity involving this contact (a thread message, or
   // creation if never messaged). Drives the invoice form's client sort.
   lastActivityAt: Timestamp;
+  bookingStage: BookingStage;
 }
 
 export type ThreadStatus = "open" | "closed";
@@ -105,4 +108,45 @@ export interface Contract {
   signedIp: string | null;
   createdAt: Timestamp;
   sentAt: Timestamp | null;
+}
+
+export type QuestionType = "short" | "long";
+
+export interface QuestionnaireQuestion {
+  id: string;
+  label: string;
+  type: QuestionType;
+}
+
+export interface QuestionnaireTemplate {
+  name: string;
+  title: string;
+  questions: QuestionnaireQuestion[];
+  createdAt: Timestamp;
+}
+
+// Answers double as the question list on a live questionnaire — each
+// snapshots the question's label/type at creation time (so editing a
+// template later doesn't retroactively change one already sent), plus the
+// client's answer once completed.
+export interface QuestionnaireAnswer {
+  questionId: string;
+  label: string;
+  type: QuestionType;
+  answer: string;
+}
+
+export type QuestionnaireStatus = "draft" | "sent" | "completed";
+
+export interface Questionnaire {
+  contactId: string;
+  threadId: string | null;
+  title: string;
+  answers: QuestionnaireAnswer[];
+  status: QuestionnaireStatus;
+  // Unique token for the public /respond/[token] link.
+  respondToken: string;
+  createdAt: Timestamp;
+  sentAt: Timestamp | null;
+  completedAt: Timestamp | null;
 }

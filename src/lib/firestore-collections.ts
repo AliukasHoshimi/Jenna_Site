@@ -12,6 +12,8 @@ import type {
   Invoice,
   ContractTemplate,
   Contract,
+  QuestionnaireTemplate,
+  Questionnaire,
 } from "@/types/firestore";
 
 function converter<T extends FirebaseFirestore.DocumentData>(): FirestoreDataConverter<T> {
@@ -47,4 +49,12 @@ export function contractTemplatesCol() {
 
 export function contractsCol() {
   return adminDb().collection("contracts").withConverter(converter<Contract>());
+}
+
+export function questionnaireTemplatesCol() {
+  return adminDb().collection("questionnaireTemplates").withConverter(converter<QuestionnaireTemplate>());
+}
+
+export function questionnairesCol() {
+  return adminDb().collection("questionnaires").withConverter(converter<Questionnaire>());
 }
