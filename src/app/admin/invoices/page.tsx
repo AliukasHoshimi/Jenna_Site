@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { invoicesCol, contactsCol } from "@/lib/firestore-collections";
 import { StatusBadge } from "@/components/status-badge";
+import { displayInvoiceStatus } from "@/lib/invoice-status";
 
 export default async function InvoicesPage() {
   const snap = await invoicesCol().orderBy("createdAt", "desc").get();
@@ -38,7 +39,7 @@ export default async function InvoicesPage() {
                   {invoice.currency.toUpperCase()} {invoice.amountTotal.toFixed(2)}
                 </p>
               </div>
-              <StatusBadge status={invoice.status} />
+              <StatusBadge status={displayInvoiceStatus(invoice)} />
             </Link>
           );
         })}

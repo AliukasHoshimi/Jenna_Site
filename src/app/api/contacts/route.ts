@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
     instagram: instagram || null,
     source: source || "manual",
     createdAt: FieldValue.serverTimestamp() as unknown as Timestamp,
+    lastActivityAt: FieldValue.serverTimestamp() as unknown as Timestamp,
   });
 
   return NextResponse.json({ ok: true, id: docRef.id });

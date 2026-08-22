@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { threadsCol, messagesCol, contactsCol, templatesCol } from "@/lib/firestore-collections";
 import { StatusBadge } from "@/components/status-badge";
@@ -33,7 +34,15 @@ export default async function ThreadDetailPage({ params }: { params: Promise<{ i
         </div>
         <div className="flex flex-col items-end gap-1">
           <StatusBadge status={thread.status} />
-          <ThreadStatusToggle threadId={id} status={thread.status} />
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/admin/invoices/new?contactId=${thread.contactId}`}
+              className="text-xs text-accent hover:underline"
+            >
+              New invoice
+            </Link>
+            <ThreadStatusToggle threadId={id} status={thread.status} />
+          </div>
         </div>
       </div>
 

@@ -62,7 +62,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     createdAt: FieldValue.serverTimestamp() as unknown as Timestamp,
   });
 
-  await threadRef.update({ lastMessageAt: FieldValue.serverTimestamp() });
+  await threadRef.update({
+    lastMessageAt: FieldValue.serverTimestamp(),
+    lastMessageDirection: "outbound",
+  });
+  await contactsCol().doc(thread.contactId).update({ lastActivityAt: FieldValue.serverTimestamp() });
 
   return NextResponse.json({ ok: true });
 }

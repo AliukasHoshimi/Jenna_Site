@@ -7,9 +7,16 @@ export interface Contact {
   instagram: string | null;
   source: string;
   createdAt: Timestamp;
+  // Most recent activity involving this contact (a thread message, or
+  // creation if never messaged). Drives the invoice form's client sort.
+  lastActivityAt: Timestamp;
 }
 
 export type ThreadStatus = "open" | "closed";
+
+// The brief's schema defines inbound/outbound; "system" is added so the
+// paid-invoice notice (Section 4.D.7) has somewhere to live in the thread.
+export type MessageDirection = "inbound" | "outbound" | "system";
 
 export interface Thread {
   contactId: string;
@@ -18,11 +25,10 @@ export interface Thread {
   replyToken: string;
   createdAt: Timestamp;
   lastMessageAt: Timestamp;
+  // Direction of the most recent message, used to flag threads awaiting
+  // Jenna's reply. Absent on threads created before this field existed.
+  lastMessageDirection?: MessageDirection;
 }
-
-// The brief's schema defines inbound/outbound; "system" is added so the
-// paid-invoice notice (Section 4.D.7) has somewhere to live in the thread.
-export type MessageDirection = "inbound" | "outbound" | "system";
 
 export interface Message {
   direction: MessageDirection;

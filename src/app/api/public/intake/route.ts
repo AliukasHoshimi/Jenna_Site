@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
   let contactId: string;
   if (!existingContact.empty) {
     contactId = existingContact.docs[0].id;
+    await contactsCol().doc(contactId).update({ lastActivityAt: FieldValue.serverTimestamp() });
   } else {
     const newContact = await contactsCol().add({
       name,
@@ -40,6 +41,7 @@ export async function POST(request: NextRequest) {
       instagram,
       source,
       createdAt: FieldValue.serverTimestamp() as unknown as Timestamp,
+      lastActivityAt: FieldValue.serverTimestamp() as unknown as Timestamp,
     });
     contactId = newContact.id;
   }
@@ -51,6 +53,7 @@ export async function POST(request: NextRequest) {
     replyToken: crypto.randomUUID(),
     createdAt: FieldValue.serverTimestamp() as unknown as Timestamp,
     lastMessageAt: FieldValue.serverTimestamp() as unknown as Timestamp,
+    lastMessageDirection: "inbound",
   });
 
   await messagesCol(newThread.id).add({

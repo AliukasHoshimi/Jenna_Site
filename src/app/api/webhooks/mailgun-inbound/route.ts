@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
     const contactSnap = await contactsCol().where("email", "==", senderEmail).limit(1).get();
     if (!contactSnap.empty) {
       contactId = contactSnap.docs[0].id;
+      await contactsCol().doc(contactId).update({ lastActivityAt: FieldValue.serverTimestamp() });
     } else {
       const newContact = await contactsCol().add({
         name: senderName,
@@ -71,9 +72,12 @@ export async function POST(request: NextRequest) {
         instagram: null,
         source: "email",
         createdAt: FieldValue.serverTimestamp() as unknown as Timestamp,
+        lastActivityAt: FieldValue.serverTimestamp() as unknown as Timestamp,
       });
       contactId = newContact.id;
     }
+  } else {
+    await contactsCol().doc(contactId).update({ lastActivityAt: FieldValue.serverTimestamp() });
   }
 
   if (!threadId) {
@@ -97,6 +101,7 @@ export async function POST(request: NextRequest) {
 
   await threadsCol().doc(threadId).update({
     lastMessageAt: FieldValue.serverTimestamp(),
+    lastMessageDirection: "inbound",
     status: "open",
   });
 

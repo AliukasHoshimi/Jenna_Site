@@ -7,7 +7,7 @@ export default async function NewInvoicePage({
   searchParams: Promise<{ contactId?: string }>;
 }) {
   const { contactId } = await searchParams;
-  const snap = await contactsCol().orderBy("name", "asc").get();
+  const snap = await contactsCol().orderBy("lastActivityAt", "desc").get();
   const contacts = snap.docs.map((d) => ({ id: d.id, name: d.data().name, email: d.data().email }));
 
   return (

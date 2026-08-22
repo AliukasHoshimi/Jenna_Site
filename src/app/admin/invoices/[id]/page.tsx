@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 import { invoicesCol, contactsCol } from "@/lib/firestore-collections";
 import { StatusBadge } from "@/components/status-badge";
+import { displayInvoiceStatus } from "@/lib/invoice-status";
 import { SendInvoiceButton } from "./send-invoice-button";
+import { MarkPaidButton } from "./mark-paid-button";
 
 export default async function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -10,12 +12,13 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
   const invoice = invoiceSnap.data()!;
   const contactSnap = await contactsCol().doc(invoice.contactId).get();
   const contact = contactSnap.data();
+  const status = displayInvoiceStatus(invoice);
 
   return (
     <div className="max-w-xl">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="font-display text-2xl text-foreground">Invoice #{invoice.invoiceNumber}</h1>
-        <StatusBadge status={invoice.status} />
+        <StatusBadge status={status} />
       </div>
 
       <p className="mb-1 text-sm text-muted">
@@ -65,6 +68,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
           </a>
         )}
         {invoice.status === "draft" && <SendInvoiceButton invoiceId={id} />}
+        {invoice.status === "sent" && <MarkPaidButton invoiceId={id} />}
       </div>
     </div>
   );

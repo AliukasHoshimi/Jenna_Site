@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { contactsCol, threadsCol, invoicesCol } from "@/lib/firestore-collections";
 import { StatusBadge } from "@/components/status-badge";
 import { NewThreadForm } from "./new-thread-form";
+import { ContactHeader } from "./contact-header";
 
 export default async function ContactDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -17,10 +18,16 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="max-w-2xl">
-      <h1 className="font-display text-2xl text-foreground">{contact.name}</h1>
-      <p className="mb-1 text-sm text-muted">{contact.email}</p>
-      {contact.phone && <p className="text-sm text-muted">{contact.phone}</p>}
-      {contact.instagram && <p className="text-sm text-muted">@{contact.instagram}</p>}
+      <ContactHeader
+        contact={{
+          id,
+          name: contact.name,
+          email: contact.email,
+          phone: contact.phone,
+          instagram: contact.instagram,
+          source: contact.source,
+        }}
+      />
 
       <div className="mt-6 flex gap-2">
         <Link
