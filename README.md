@@ -6,22 +6,24 @@ the public marketing site. Full context and design decisions are in the
 build brief this project was scaffolded from.
 
 **Status:** scaffolded end-to-end (auth shell, data model, inbox, templates,
-invoicing, PDF generation, Mailgun/Stripe integration code, webhooks) but
-**no external accounts exist yet** — see Prerequisites below. Nothing has
-been tested against real email or real payments.
+invoicing, PDF generation, Mailgun/Stripe integration code, webhooks).
+Firebase is real and live: the `samsarafilmss-studio` project exists,
+Firestore is provisioned and seeded with test data (`scripts/seed.mjs`),
+security rules are deployed, and Jenna's login user exists in Firebase
+Auth. Mailgun and Stripe accounts still don't exist — see Prerequisites
+below. Nothing has been tested against real email or real payments, and
+the app hasn't been deployed to App Hosting yet.
 
 ## Stack
 
 Next.js (App Router) on Firebase App Hosting, Firestore, Firebase Auth,
 Mailgun (send + inbound routing), Stripe Checkout, `@react-pdf/renderer`.
 
-## Prerequisites (none of these exist yet)
+## Prerequisites
 
-Before this app can actually do anything, someone needs to:
-
-1. **Create a Firebase project** with Firestore and Authentication (email/
-   password provider) enabled. Create Jenna's one login user in the
-   Firebase Auth console.
+1. ~~Create a Firebase project with Firestore and Authentication~~ — **done.**
+   Project `samsarafilmss-studio`, Firestore provisioned and rules deployed,
+   Jenna's login user exists.
 2. **Create a Mailgun account**, add a sending/receiving domain (e.g.
    `mail.samsarafilmss.com`), and verify the DNS records (MX, TXT/SPF,
    DKIM) — this requires DNS access to `samsarafilmss.com`. Inbound routing
@@ -63,6 +65,13 @@ per thread), `templates`, `invoices`. See `src/types/firestore.ts` for the
 exact shape. Firestore security rules (`firestore.rules`) deny all direct
 client-side access — every read/write goes through this app's server code
 (API routes and server components) using the Firebase Admin SDK.
+
+`scripts/seed.mjs` writes a small set of fake contacts/threads/templates/
+invoices for Phase 2 UI verification (`node scripts/seed.mjs`, reads
+`FIREBASE_SERVICE_ACCOUNT_KEY` from `.env.local`). It also sets the
+`counters/invoices` doc so real invoices created afterward continue
+numbering from where the seed data left off. Safe to rerun against a test
+project; don't run it against a project with real client data in it.
 
 ## Design tokens (placeholder)
 

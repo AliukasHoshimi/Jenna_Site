@@ -13,9 +13,11 @@ export const colors = {
   foreground: "#26241F",
   muted: "#8B8577",
   border: "#E5DFD1",
-  accent: "#5F6F4F",
+  accent: "#4B5A3F",
+  accentTint: "#E1E6D9",
   accentContrast: "#FFFFFF",
   warm: "#B15A3E",
+  warmTint: "#F3E1D8",
   success: "#4B7A5B",
 } as const;
 

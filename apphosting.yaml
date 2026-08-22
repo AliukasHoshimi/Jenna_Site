@@ -25,6 +25,12 @@ env:
     secret: MAILGUN_API_KEY
   - variable: MAILGUN_DOMAIN
     secret: MAILGUN_DOMAIN
+  - variable: MAILGUN_WEBHOOK_SIGNING_KEY
+    secret: MAILGUN_WEBHOOK_SIGNING_KEY
+  - variable: MAILGUN_FROM_REPLIES
+    secret: MAILGUN_FROM_REPLIES
+  - variable: MAILGUN_FROM_INVOICES
+    secret: MAILGUN_FROM_INVOICES
   - variable: STRIPE_SECRET_KEY
     secret: STRIPE_SECRET_KEY
   - variable: STRIPE_WEBHOOK_SECRET

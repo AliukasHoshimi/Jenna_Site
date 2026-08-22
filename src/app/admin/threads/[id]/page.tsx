@@ -17,7 +17,10 @@ export default async function ThreadDetailPage({ params }: { params: Promise<{ i
   ]);
 
   const contact = contactSnap.data();
-  const templates = templatesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const templates = templatesSnap.docs.map((d) => {
+    const data = d.data();
+    return { id: d.id, name: data.name, subject: data.subject, body: data.body };
+  });
 
   return (
     <div className="max-w-2xl">

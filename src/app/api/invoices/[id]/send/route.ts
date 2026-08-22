@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { requireAuth } from "@/lib/auth/require-auth";
-import { invoicesCol, contactsCol } from "@/lib/firestore-collections";
+import { invoicesCol, contactsCol, threadsCol } from "@/lib/firestore-collections";
 import { stripe } from "@/lib/stripe";
-import { sendEmail } from "@/lib/mailgun";
+import { sendEmail, replyAddressForToken } from "@/lib/mailgun";
 import { renderInvoicePdf } from "@/lib/pdf/render-invoice-pdf";
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -51,13 +51,23 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const pdfBuffer = await renderInvoicePdf({ ...invoice, stripeCheckoutUrl: checkoutUrl }, contact);
 
+    // If this invoice is tied to a thread, route replies back into that
+    // conversation instead of a generic address.
+    let replyTo = `Jenna | Samsarafilmss <${process.env.MAILGUN_FROM_REPLIES}>`;
+    if (invoice.threadId) {
+      const threadSnap = await threadsCol().doc(invoice.threadId).get();
+      const thread = threadSnap.data();
+      if (thread) replyTo = replyAddressForToken(thread.replyToken);
+    }
+
     await sendEmail({
       to: contact.email,
+      from: `Samsarafilmss Billing <${process.env.MAILGUN_FROM_INVOICES}>`,
       subject: `Invoice #${invoice.invoiceNumber} from Samsarafilmss`,
       text: `Hi ${contact.name},\n\nYour invoice #${invoice.invoiceNumber} for ${invoice.currency.toUpperCase()} ${invoice.amountTotal.toFixed(
         2
       )} is attached. You can pay securely here:\n${checkoutUrl}\n\nThanks,\nJenna`,
-      replyTo: `studio@${process.env.MAILGUN_DOMAIN}`,
+      replyTo,
       attachment: [{ filename: `invoice-${invoice.invoiceNumber}.pdf`, data: pdfBuffer }],
     });
   } catch (err) {

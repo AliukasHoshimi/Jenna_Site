@@ -40,6 +40,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   try {
     const sendResult = await sendEmail({
       to: contact.email,
+      from: `Jenna | Samsarafilmss <${process.env.MAILGUN_FROM_REPLIES}>`,
       subject: thread.subject,
       text: body,
       replyTo: replyAddressForToken(thread.replyToken),

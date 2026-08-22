@@ -28,6 +28,7 @@ export function replyAddressForToken(replyToken: string) {
 
 interface SendEmailInput {
   to: string;
+  from: string;
   subject: string;
   text: string;
   html?: string;
@@ -42,7 +43,7 @@ export async function sendEmail(input: SendEmailInput) {
   const domain = getDomain();
 
   const message: MailgunMessageData = {
-    from: `Jenna | Samsarafilmss <studio@${domain}>`,
+    from: input.from,
     to: [input.to],
     subject: input.subject,
     text: input.text,
@@ -59,11 +60,12 @@ export async function sendEmail(input: SendEmailInput) {
 
 /**
  * Verifies Mailgun's inbound webhook signature (HMAC-SHA256 of
- * timestamp+token, keyed with the Mailgun API key). Reject anything that
- * doesn't validate before trusting the payload.
+ * timestamp+token, keyed with Mailgun's account-level HTTP webhook signing
+ * key — a different secret from the per-domain sending API key). Reject
+ * anything that doesn't validate before trusting the payload.
  */
 export function verifyMailgunSignature(timestamp: string, token: string, signature: string) {
-  const signingKey = process.env.MAILGUN_API_KEY;
+  const signingKey = process.env.MAILGUN_WEBHOOK_SIGNING_KEY;
   if (!signingKey) return false;
   try {
     const expected = crypto.createHmac("sha256", signingKey).update(timestamp + token).digest("hex");

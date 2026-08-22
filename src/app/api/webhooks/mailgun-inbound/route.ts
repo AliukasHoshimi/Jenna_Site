@@ -102,6 +102,7 @@ export async function POST(request: NextRequest) {
   if (notifyTo) {
     await sendEmail({
       to: notifyTo,
+      from: `Studio <${process.env.MAILGUN_FROM_REPLIES}>`,
       subject: `New message: ${subject}`,
       text: `${senderName} <${senderEmail}> wrote:\n\n${bodyPlain}\n\nOpen Studio to reply.`,
       replyTo: notifyTo,
