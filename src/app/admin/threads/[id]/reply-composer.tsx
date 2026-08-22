@@ -20,13 +20,16 @@ export function ReplyComposer({
   threadId,
   contactName,
   templates,
+  defaultStyled,
 }: {
   threadId: string;
   contactName: string;
   templates: Template[];
+  defaultStyled: boolean;
 }) {
   const router = useRouter();
   const [body, setBody] = useState("");
+  const [styled, setStyled] = useState(defaultStyled);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -50,7 +53,7 @@ export function ReplyComposer({
     const res = await fetch(`/api/threads/${threadId}/messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body }),
+      body: JSON.stringify({ body, useHtml: styled }),
     });
     setSending(false);
     if (res.ok) {
@@ -90,7 +93,11 @@ export function ReplyComposer({
         className="w-full resize-none overflow-y-auto rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
       />
       {error && <p className="mt-2 text-sm text-warm">{error}</p>}
-      <div className="mt-2 flex justify-end">
+      <div className="mt-2 flex items-center justify-between">
+        <label className="flex items-center gap-1.5 text-xs text-muted">
+          <input type="checkbox" checked={styled} onChange={(e) => setStyled(e.target.checked)} />
+          Styled formatting
+        </label>
         <button
           onClick={handleSend}
           disabled={sending}

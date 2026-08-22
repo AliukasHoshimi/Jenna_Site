@@ -18,6 +18,7 @@ export default async function ThreadDetailPage({ params }: { params: Promise<{ i
   ]);
 
   const contact = contactSnap.data();
+  const hasPriorOutbound = messagesSnap.docs.some((d) => d.data().direction === "outbound");
   const templates = templatesSnap.docs.map((d) => {
     const data = d.data();
     return { id: d.id, name: data.name, subject: data.subject, body: data.body };
@@ -75,7 +76,12 @@ export default async function ThreadDetailPage({ params }: { params: Promise<{ i
       </div>
 
       <div className="mt-6">
-        <ReplyComposer threadId={id} contactName={contact?.name ?? ""} templates={templates} />
+        <ReplyComposer
+          threadId={id}
+          contactName={contact?.name ?? ""}
+          templates={templates}
+          defaultStyled={!hasPriorOutbound}
+        />
       </div>
     </div>
   );

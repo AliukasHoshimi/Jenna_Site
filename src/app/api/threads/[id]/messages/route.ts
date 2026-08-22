@@ -10,7 +10,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!user) return response;
 
   const { id: threadId } = await params;
-  const { body } = await request.json();
+  const { body, useHtml } = await request.json();
   if (!body || typeof body !== "string" || !body.trim()) {
     return NextResponse.json({ error: "Message body is required" }, { status: 400 });
   }
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       from: `Jenna | Samsarafilmss <${process.env.MAILGUN_FROM_REPLIES}>`,
       subject: thread.subject,
       text: body,
-      html: renderEmailHtml(body),
+      html: useHtml === false ? undefined : renderEmailHtml(body),
       replyTo: replyAddressForToken(thread.replyToken),
       inReplyTo: lastInboundMessageId,
       references: lastInboundMessageId,
