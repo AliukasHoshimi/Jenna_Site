@@ -5,6 +5,7 @@ import { invoicesCol, contactsCol, threadsCol } from "@/lib/firestore-collection
 import { stripe } from "@/lib/stripe";
 import { sendEmail, replyAddressForToken } from "@/lib/mailgun";
 import { renderInvoicePdf } from "@/lib/pdf/render-invoice-pdf";
+import { renderEmailHtml } from "@/lib/email-html";
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { user, response } = await requireAuth();
@@ -60,13 +61,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       if (thread) replyTo = replyAddressForToken(thread.replyToken);
     }
 
+    const emailText = `Hi ${contact.name},\n\nYour invoice #${invoice.invoiceNumber} for ${invoice.currency.toUpperCase()} ${invoice.amountTotal.toFixed(
+      2
+    )} is attached. You can pay securely here:\n${checkoutUrl}\n\nThanks,\nJenna`;
+
     await sendEmail({
       to: contact.email,
       from: `Samsarafilmss Billing <${process.env.MAILGUN_FROM_INVOICES}>`,
       subject: `Invoice #${invoice.invoiceNumber} from Samsarafilmss`,
-      text: `Hi ${contact.name},\n\nYour invoice #${invoice.invoiceNumber} for ${invoice.currency.toUpperCase()} ${invoice.amountTotal.toFixed(
-        2
-      )} is attached. You can pay securely here:\n${checkoutUrl}\n\nThanks,\nJenna`,
+      text: emailText,
+      html: renderEmailHtml(
+        `Hi ${contact.name},\n\nYour invoice #${invoice.invoiceNumber} for ${invoice.currency.toUpperCase()} ${invoice.amountTotal.toFixed(
+          2
+        )} is attached.`,
+        { ctaLabel: "Pay now", ctaUrl: checkoutUrl ?? undefined }
+      ),
       replyTo,
       attachment: [{ filename: `invoice-${invoice.invoiceNumber}.pdf`, data: pdfBuffer }],
     });

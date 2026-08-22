@@ -3,6 +3,7 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { threadsCol, contactsCol, messagesCol } from "@/lib/firestore-collections";
 import { sendEmail, replyAddressForToken } from "@/lib/mailgun";
+import { renderEmailHtml } from "@/lib/email-html";
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { user, response } = await requireAuth();
@@ -43,6 +44,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       from: `Jenna | Samsarafilmss <${process.env.MAILGUN_FROM_REPLIES}>`,
       subject: thread.subject,
       text: body,
+      html: renderEmailHtml(body),
       replyTo: replyAddressForToken(thread.replyToken),
       inReplyTo: lastInboundMessageId,
       references: lastInboundMessageId,
