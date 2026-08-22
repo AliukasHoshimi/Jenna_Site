@@ -14,6 +14,62 @@ interface LineItemRow {
   amount: string;
 }
 
+const LINE_ITEM_PRESETS: { group: string; options: string[] }[] = [
+  {
+    group: "Session fees",
+    options: [
+      "Adventure elopement session (4 hrs)",
+      "Half-day adventure session (4 hrs)",
+      "Full-day adventure session (8 hrs)",
+      "Portrait session (1 hr)",
+      "Extended portrait session (2 hrs)",
+      "Engagement session (1.5 hrs)",
+      "Mini session (30 min)",
+    ],
+  },
+  {
+    group: "Wedding coverage",
+    options: [
+      "Wedding day coverage (8 hrs)",
+      "Wedding day coverage (10 hrs)",
+      "Elopement coverage (4 hrs)",
+      "Rehearsal dinner coverage",
+      "Second shooter (full day)",
+    ],
+  },
+  {
+    group: "Add-ons",
+    options: [
+      "Extra hour of coverage",
+      "Second shooter (4 hrs)",
+      "Drone / aerial add-on",
+      "Rush editing (48-hour turnaround)",
+      "Additional edited images (set of 10)",
+      "Engagement session add-on",
+    ],
+  },
+  {
+    group: "Travel & logistics",
+    options: ["Travel fee", "Mileage reimbursement", "Permit / location fee"],
+  },
+  {
+    group: "Deliverables",
+    options: [
+      "Full digital gallery",
+      "Printed album (8x8, 20 pages)",
+      "USB drive, full-resolution images",
+      "Canvas print (16x20)",
+    ],
+  },
+];
+
+// Native number-input spin buttons only step by whole increments of `step`,
+// which is useless on dollar amounts (clicking 100 times to add a dollar) —
+// hidden here rather than removing type="number" so mobile still gets a
+// numeric keyboard.
+const noSpinnerClass =
+  "[appearance:textfield] [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none";
+
 export function NewInvoiceForm({
   contacts,
   defaultContactId,
@@ -121,31 +177,51 @@ export function NewInvoiceForm({
         <label className="mb-2 block text-sm text-muted">Line items</label>
         <div className="space-y-2">
           {lineItems.map((row, i) => (
-            <div key={i} className="flex gap-2">
-              <input
-                placeholder="Description"
-                value={row.description}
-                onChange={(e) => updateLineItem(i, "description", e.target.value)}
-                className="flex-1 rounded-md border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
-              />
-              <input
-                placeholder="Amount"
-                type="number"
-                min="0"
-                step="0.01"
-                value={row.amount}
-                onChange={(e) => updateLineItem(i, "amount", e.target.value)}
-                className="w-32 rounded-md border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
-              />
-              {lineItems.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeLineItem(i)}
-                  className="text-xs text-muted hover:text-warm"
-                >
-                  Remove
-                </button>
-              )}
+            <div key={i} className="space-y-1">
+              <div className="flex gap-2">
+                <input
+                  placeholder="Description"
+                  value={row.description}
+                  onChange={(e) => updateLineItem(i, "description", e.target.value)}
+                  className="flex-1 rounded-md border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+                />
+                <input
+                  placeholder="Amount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={row.amount}
+                  onChange={(e) => updateLineItem(i, "amount", e.target.value)}
+                  className={`w-32 rounded-md border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent ${noSpinnerClass}`}
+                />
+                {lineItems.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeLineItem(i)}
+                    className="text-xs text-muted hover:text-warm"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+              <select
+                value=""
+                onChange={(e) => {
+                  if (e.target.value) updateLineItem(i, "description", e.target.value);
+                }}
+                className="rounded-md border border-border bg-background px-2 py-1 text-xs text-muted outline-none focus:border-accent"
+              >
+                <option value="">Insert a preset description…</option>
+                {LINE_ITEM_PRESETS.map((group) => (
+                  <optgroup key={group.group} label={group.group}>
+                    {group.options.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
             </div>
           ))}
         </div>
@@ -165,7 +241,7 @@ export function NewInvoiceForm({
           step="0.01"
           value={depositAmount}
           onChange={(e) => setDepositAmount(e.target.value)}
-          className="w-40 rounded-md border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+          className={`w-40 rounded-md border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent ${noSpinnerClass}`}
         />
       </div>
 

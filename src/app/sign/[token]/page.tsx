@@ -1,4 +1,5 @@
-import { contractsCol, contactsCol } from "@/lib/firestore-collections";
+import { contractsCol } from "@/lib/firestore-collections";
+import { LocalDateTime } from "@/components/local-date-time";
 import { SignForm } from "./sign-form";
 
 export default async function SignContractPage({ params }: { params: Promise<{ token: string }> }) {
@@ -15,8 +16,6 @@ export default async function SignContractPage({ params }: { params: Promise<{ t
 
   const doc = snap.docs[0];
   const contract = doc.data();
-  const contactSnap = await contactsCol().doc(contract.contactId).get();
-  const contact = contactSnap.data();
 
   return (
     <main className="mx-auto min-h-screen max-w-xl px-6 py-12">
@@ -27,11 +26,7 @@ export default async function SignContractPage({ params }: { params: Promise<{ t
         <div className="rounded-lg border border-border bg-surface p-4 text-sm">
           <p className="font-medium text-foreground">
             Signed by {contract.signerName} on{" "}
-            {contract.signedAt?.toDate().toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
+            {contract.signedAt && <LocalDateTime iso={contract.signedAt.toDate().toISOString()} dateOnly />}
           </p>
         </div>
       ) : contract.status !== "sent" ? (
@@ -41,7 +36,7 @@ export default async function SignContractPage({ params }: { params: Promise<{ t
           <div className="mb-6 whitespace-pre-wrap rounded-lg border border-border bg-surface p-5 text-sm leading-relaxed text-foreground/90">
             {contract.body}
           </div>
-          <SignForm token={token} defaultName={contact?.name ?? ""} />
+          <SignForm token={token} />
         </>
       )}
     </main>

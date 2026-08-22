@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { contractsCol, contactsCol } from "@/lib/firestore-collections";
 import { StatusBadge } from "@/components/status-badge";
+import { LocalDateTime } from "@/components/local-date-time";
 import { ContractEditor } from "./contract-editor";
 import { SendContractButton } from "./send-contract-button";
 
@@ -31,7 +32,8 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
       {contract.status === "signed" && (
         <div className="mb-6 rounded-lg border border-border bg-surface p-4 text-sm">
           <p className="font-medium text-foreground">
-            Signed by {contract.signerName} — {contract.signedAt?.toDate().toLocaleString("en-US")}
+            Signed by {contract.signerName} —{" "}
+            {contract.signedAt && <LocalDateTime iso={contract.signedAt.toDate().toISOString()} />}
           </p>
           {contract.signedIp && <p className="mt-1 text-xs text-muted">IP address: {contract.signedIp}</p>}
         </div>
@@ -40,7 +42,8 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
       {contract.status === "sent" && (
         <div className="mb-6 rounded-lg border border-border bg-surface p-4 text-sm">
           <p className="text-muted">
-            Awaiting signature — sent {contract.sentAt?.toDate().toLocaleString("en-US")}
+            Awaiting signature — sent{" "}
+            {contract.sentAt && <LocalDateTime iso={contract.sentAt.toDate().toISOString()} />}
           </p>
           <p className="mt-2 break-all text-xs text-muted">
             Signing link: <span className="text-foreground">{signUrl}</span>

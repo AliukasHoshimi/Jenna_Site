@@ -15,6 +15,11 @@ export async function renderInvoicePdf(
         year: "numeric",
         month: "long",
         day: "numeric",
+        // dueDate is a plain calendar date (from a date input, stored as
+        // UTC midnight) not a real instant — format in UTC so it always
+        // shows the date that was actually picked, regardless of server
+        // or viewer timezone.
+        timeZone: "UTC",
       })}
       clientName={contact.name}
       clientEmail={contact.email}

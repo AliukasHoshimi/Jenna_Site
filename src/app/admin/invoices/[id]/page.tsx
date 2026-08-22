@@ -31,6 +31,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
           year: "numeric",
           month: "long",
           day: "numeric",
+          timeZone: "UTC",
         })}
       </p>
 

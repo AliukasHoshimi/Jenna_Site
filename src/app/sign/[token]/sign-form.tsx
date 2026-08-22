@@ -2,8 +2,8 @@
 
 import { useState, type FormEvent } from "react";
 
-export function SignForm({ token, defaultName }: { token: string; defaultName: string }) {
-  const [name, setName] = useState(defaultName);
+export function SignForm({ token }: { token: string }) {
+  const [name, setName] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
