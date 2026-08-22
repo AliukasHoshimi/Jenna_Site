@@ -25,7 +25,7 @@ export default async function ThreadDetailPage({ params }: { params: Promise<{ i
   });
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl mx-auto">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="font-display text-xl text-foreground">{thread.subject}</h1>
