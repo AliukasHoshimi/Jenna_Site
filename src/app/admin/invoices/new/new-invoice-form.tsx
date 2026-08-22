@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { ContactSearchSelect } from "@/components/contact-search-select";
 
 interface ContactOption {
   id: string;
@@ -151,21 +152,7 @@ export function NewInvoiceForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="mb-1 block text-sm text-muted">Client</label>
-        <select
-          required
-          value={contactId}
-          onChange={(e) => setContactId(e.target.value)}
-          className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
-        >
-          <option value="" disabled>
-            Select a client…
-          </option>
-          {contacts.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name} — {c.email}
-            </option>
-          ))}
-        </select>
+        <ContactSearchSelect contacts={contacts} value={contactId} onChange={setContactId} />
       </div>
 
       <div>
