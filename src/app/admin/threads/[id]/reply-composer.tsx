@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+
+const MAX_TEXTAREA_HEIGHT = 320; // px — grows with content up to this, then scrolls
 
 interface Template {
   id: string;
@@ -27,6 +29,14 @@ export function ReplyComposer({
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, MAX_TEXTAREA_HEIGHT)}px`;
+  }, [body]);
 
   function handleTemplateSelect(templateId: string) {
     const template = templates.find((t) => t.id === templateId);
@@ -71,11 +81,13 @@ export function ReplyComposer({
         </select>
       )}
       <textarea
+        ref={textareaRef}
         value={body}
         onChange={(e) => setBody(e.target.value)}
         rows={5}
         placeholder="Write a reply…"
-        className="w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
+        style={{ maxHeight: MAX_TEXTAREA_HEIGHT }}
+        className="w-full resize-none overflow-y-auto rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
       />
       {error && <p className="mt-2 text-sm text-warm">{error}</p>}
       <div className="mt-2 flex justify-end">

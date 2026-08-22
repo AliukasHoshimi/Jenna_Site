@@ -2,14 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth/session";
 import { LogoutButton } from "@/components/logout-button";
-
-const NAV_ITEMS = [
-  { href: "/admin", label: "Overview" },
-  { href: "/admin/threads", label: "Inbox" },
-  { href: "/admin/contacts", label: "Contacts" },
-  { href: "/admin/invoices", label: "Invoices" },
-  { href: "/admin/templates", label: "Templates" },
-];
+import { threadsCol, invoicesCol } from "@/lib/firestore-collections";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   // Every /admin route is protected here: no nested page renders until the
@@ -17,18 +10,38 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
+  const [openThreadsSnap, awaitingPaymentSnap] = await Promise.all([
+    threadsCol().where("status", "==", "open").get(),
+    invoicesCol().where("status", "in", ["sent", "overdue"]).get(),
+  ]);
+  const needsReplyCount = openThreadsSnap.docs.filter(
+    (d) => d.data().lastMessageDirection === "inbound"
+  ).length;
+
+  const navItems = [
+    { href: "/admin/threads", label: "Inbox", count: needsReplyCount },
+    { href: "/admin/contacts", label: "Contacts", count: 0 },
+    { href: "/admin/invoices", label: "Invoices", count: awaitingPaymentSnap.size },
+    { href: "/admin/templates", label: "Templates", count: 0 },
+  ];
+
   return (
     <div className="flex min-h-screen">
       <aside className="w-56 shrink-0 border-r border-border bg-surface px-4 py-6">
         <p className="mb-8 px-2 font-display text-lg text-foreground">Samsarafilmss</p>
         <nav className="space-y-1">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="block rounded-md px-2 py-2 text-sm text-foreground/80 hover:bg-background hover:text-foreground"
+              className="flex items-center justify-between rounded-md px-2 py-2 text-sm text-foreground/80 hover:bg-background hover:text-foreground"
             >
-              {item.label}
+              <span>{item.label}</span>
+              {item.count > 0 && (
+                <span className="rounded-full bg-warm px-1.5 py-0.5 text-[10px] font-medium leading-none text-accent-contrast">
+                  {item.count}
+                </span>
+              )}
             </Link>
           ))}
         </nav>
