@@ -115,7 +115,10 @@ export function ContactHeader({ contact }: { contact: ContactData }) {
         {contact.phone && <p className="text-sm text-muted">{contact.phone}</p>}
         {contact.instagram && <p className="text-sm text-muted">@{contact.instagram}</p>}
       </div>
-      <button onClick={() => setEditing(true)} className="text-xs text-muted hover:text-foreground">
+      <button
+        onClick={() => setEditing(true)}
+        className="rounded-md border border-border bg-surface px-3 py-1.5 text-sm text-foreground hover:border-accent"
+      >
         Edit
       </button>
     </div>
