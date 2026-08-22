@@ -15,13 +15,21 @@ export function ThreadStatusToggle({
 
   async function toggle() {
     setBusy(true);
+    const nextStatus = status === "open" ? "closed" : "open";
     await fetch(`/api/threads/${threadId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: status === "open" ? "closed" : "open" }),
+      body: JSON.stringify({ status: nextStatus }),
     });
     setBusy(false);
-    router.refresh();
+    if (nextStatus === "closed") {
+      // Closed threads are hidden from the default inbox view, so closing
+      // one from here should take you back to the list, not leave you
+      // sitting on a thread you'd have to search "Closed" to find again.
+      router.push("/admin/threads");
+    } else {
+      router.refresh();
+    }
   }
 
   return (
