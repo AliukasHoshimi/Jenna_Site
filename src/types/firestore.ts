@@ -51,7 +51,7 @@ export interface Template {
 // stored. "deposit_paid" sits between two "sent" states: sent (deposit
 // checkout outstanding) -> deposit_paid -> sent (balance checkout
 // outstanding, once Jenna sends it) -> paid.
-export type InvoiceStatus = "draft" | "sent" | "deposit_paid" | "paid" | "overdue";
+export type InvoiceStatus = "draft" | "sent" | "deposit_paid" | "paid" | "overdue" | "balance_due";
 
 export interface LineItem {
   description: string;
@@ -83,6 +83,11 @@ export interface Invoice {
   depositAmount: number | null;
   depositPaidAt: Timestamp | null;
   depositStripeCheckoutSessionId: string | null;
+  // When the balance invoice should go out once the deposit's paid — set at
+  // creation time alongside depositAmount, null for non-deposit invoices.
+  // Purely a nudge for Jenna (see displayInvoiceStatus); the balance is
+  // still sent manually, same as every other outbound invoice.
+  balanceDueDate: Timestamp | null;
 }
 
 export interface ContractTemplate {

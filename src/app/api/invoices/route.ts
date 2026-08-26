@@ -14,13 +14,14 @@ export async function POST(request: NextRequest) {
   if (!user) return response;
 
   const payload = await request.json();
-  const { contactId, threadId, lineItems, dueDate, currency, depositAmount } = payload as {
+  const { contactId, threadId, lineItems, dueDate, currency, depositAmount, balanceDueDate } = payload as {
     contactId: string;
     threadId?: string | null;
     lineItems: LineItemInput[];
     dueDate: string;
     currency?: string;
     depositAmount?: number | null;
+    balanceDueDate?: string | null;
   };
 
   if (!contactId || !Array.isArray(lineItems) || lineItems.length === 0 || !dueDate) {
@@ -63,6 +64,8 @@ export async function POST(request: NextRequest) {
     depositAmount: depositAmount ?? null,
     depositPaidAt: null,
     depositStripeCheckoutSessionId: null,
+    balanceDueDate:
+      depositAmount != null && balanceDueDate ? Timestamp.fromDate(new Date(balanceDueDate)) : null,
   });
 
   return NextResponse.json({ ok: true, id: docRef.id, invoiceNumber });

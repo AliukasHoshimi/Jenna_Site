@@ -63,6 +63,19 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                 {invoice.currency.toUpperCase()} ${(invoice.amountTotal - invoice.depositAmount).toFixed(2)}
               </span>
             </div>
+            {invoice.balanceDueDate && invoice.status === "deposit_paid" && (
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-sm text-muted">Balance due</span>
+                <span className={`text-sm ${status === "balance_due" ? "font-medium text-warm" : "text-muted"}`}>
+                  {invoice.balanceDueDate.toDate().toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                    timeZone: "UTC",
+                  })}
+                </span>
+              </div>
+            )}
           </>
         )}
       </div>

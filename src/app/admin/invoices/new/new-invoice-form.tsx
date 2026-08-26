@@ -89,6 +89,7 @@ export function NewInvoiceForm({
     defaultLineItems && defaultLineItems.length > 0 ? defaultLineItems : [{ description: "", amount: "" }]
   );
   const [depositAmount, setDepositAmount] = useState(defaultDepositAmount ?? "");
+  const [balanceDueDate, setBalanceDueDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -137,6 +138,7 @@ export function NewInvoiceForm({
         lineItems: parsedItems,
         currency: "usd",
         depositAmount: parsedDeposit,
+        balanceDueDate: parsedDeposit != null && balanceDueDate ? balanceDueDate : null,
       }),
     });
     const data = await res.json();
@@ -237,6 +239,24 @@ export function NewInvoiceForm({
           className={`w-40 rounded-md border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent ${noSpinnerClass}`}
         />
       </div>
+
+      {depositAmount.trim() && (
+        <div>
+          <label className="mb-1 block text-sm text-muted">
+            Balance due date{" "}
+            <span className="text-muted/70">
+              (optional — flags this on the invoices list once the deposit&apos;s paid, as a reminder to send the
+              balance)
+            </span>
+          </label>
+          <input
+            type="date"
+            value={balanceDueDate}
+            onChange={(e) => setBalanceDueDate(e.target.value)}
+            className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+          />
+        </div>
+      )}
 
       <p className="text-sm text-muted">
         Total: <span className="font-medium text-foreground">${total.toFixed(2)}</span>

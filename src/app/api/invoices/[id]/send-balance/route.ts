@@ -45,8 +45,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         },
       ],
       metadata: { invoiceId: id, invoiceNumber: invoice.invoiceNumber },
-      success_url: `${origin}/admin/invoices/${id}?paid=1`,
-      cancel_url: `${origin}/admin/invoices/${id}`,
+      success_url: `${origin}/pay/${id}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/pay/${id}/cancelled`,
     });
     const checkoutUrl = session.url;
     const checkoutSessionId = session.id;

@@ -10,20 +10,26 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const [openThreadsSnap, awaitingPaymentSnap, awaitingSignatureSnap, awaitingResponseSnap] = await Promise.all([
-    threadsCol().where("status", "==", "open").get(),
-    invoicesCol().where("status", "in", ["sent", "overdue"]).get(),
-    contractsCol().where("status", "==", "sent").get(),
-    questionnairesCol().where("status", "==", "sent").get(),
-  ]);
+  const [openThreadsSnap, awaitingPaymentSnap, depositPaidSnap, awaitingSignatureSnap, awaitingResponseSnap] =
+    await Promise.all([
+      threadsCol().where("status", "==", "open").get(),
+      invoicesCol().where("status", "in", ["sent", "overdue"]).get(),
+      invoicesCol().where("status", "==", "deposit_paid").get(),
+      contractsCol().where("status", "==", "sent").get(),
+      questionnairesCol().where("status", "==", "sent").get(),
+    ]);
   const needsReplyCount = openThreadsSnap.docs.filter(
     (d) => d.data().lastMessageDirection === "inbound"
   ).length;
+  const balanceDueCount = depositPaidSnap.docs.filter((d) => {
+    const balanceDueDate = d.data().balanceDueDate;
+    return balanceDueDate && balanceDueDate.toDate() < new Date();
+  }).length;
 
   const navItems = [
     { href: "/admin/threads", label: "Inbox", count: needsReplyCount },
     { href: "/admin/contacts", label: "Contacts", count: 0 },
-    { href: "/admin/invoices", label: "Invoices", count: awaitingPaymentSnap.size },
+    { href: "/admin/invoices", label: "Invoices", count: awaitingPaymentSnap.size + balanceDueCount },
     { href: "/admin/contracts", label: "Contracts", count: awaitingSignatureSnap.size },
     { href: "/admin/questionnaires", label: "Questionnaires", count: awaitingResponseSnap.size },
     { href: "/admin/templates", label: "Templates", count: 0 },

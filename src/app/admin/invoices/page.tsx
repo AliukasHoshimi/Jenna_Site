@@ -5,7 +5,12 @@ import { displayInvoiceStatus } from "@/lib/invoice-status";
 
 export default async function InvoicesPage() {
   const snap = await invoicesCol().orderBy("createdAt", "desc").get();
-  const invoices = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const invoices = snap.docs
+    .map((d) => ({ id: d.id, ...d.data(), displayStatus: displayInvoiceStatus(d.data()) }))
+    .sort((a, b) => {
+      const priority = (s: string) => (s === "balance_due" || s === "overdue" ? 0 : 1);
+      return priority(a.displayStatus) - priority(b.displayStatus);
+    });
   const contactIds = Array.from(new Set(invoices.map((i) => i.contactId)));
   const contactDocs = await Promise.all(contactIds.map((id) => contactsCol().doc(id).get()));
   const contactsById = new Map(contactDocs.filter((d) => d.exists).map((d) => [d.id, d.data()!]));
@@ -39,7 +44,7 @@ export default async function InvoicesPage() {
                   {invoice.currency.toUpperCase()} {invoice.amountTotal.toFixed(2)}
                 </p>
               </div>
-              <StatusBadge status={displayInvoiceStatus(invoice)} />
+              <StatusBadge status={invoice.displayStatus} />
             </Link>
           );
         })}

@@ -7,6 +7,7 @@ const STYLES: Record<string, string> = {
   signed: "bg-success/10 text-success",
   deposit_paid: "bg-accent/10 text-accent",
   overdue: "bg-warm/10 text-warm",
+  balance_due: "bg-warm/10 text-warm",
   inquiry: "bg-muted/10 text-muted",
   booked: "bg-accent/10 text-accent",
   active: "bg-warm/10 text-warm",
