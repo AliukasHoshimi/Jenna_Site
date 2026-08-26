@@ -5,14 +5,14 @@ templates, and invoicing. Lives at `studio.samsarafilmss.com`, separate from
 the public marketing site. Full context and design decisions are in the
 build brief this project was scaffolded from.
 
-**Status:** scaffolded end-to-end (auth shell, data model, inbox, templates,
-invoicing, PDF generation, Mailgun/Stripe integration code, webhooks).
-Firebase is real and live: the `samsarafilmss-studio` project exists,
-Firestore is provisioned and seeded with test data (`scripts/seed.mjs`),
-security rules are deployed, and Jenna's login user exists in Firebase
-Auth. Mailgun and Stripe accounts still don't exist — see Prerequisites
-below. Nothing has been tested against real email or real payments, and
-the app hasn't been deployed to App Hosting yet.
+**Status:** live at `studio.samsarafilmss.com` on Vercel (not Firebase App
+Hosting — see note below). Firebase (Firestore + Auth), Mailgun (send +
+inbound routing, real DNS verified), and Stripe (test mode: secret key +
+webhook endpoint, both configured) are all real and wired up. Contracts
+with e-signature, client intake questionnaires, and deposit/balance
+invoicing have shipped since the original scaffold. Still on Stripe
+test-mode keys — switch to live keys only once the payment flow's been
+verified end to end.
 
 ## Stack
 
