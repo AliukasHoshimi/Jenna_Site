@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
     depositStripeCheckoutSessionId: null,
     balanceDueDate:
       depositAmount != null && balanceDueDate ? Timestamp.fromDate(new Date(balanceDueDate)) : null,
+    archivedAt: null,
   });
 
   return NextResponse.json({ ok: true, id: docRef.id, invoiceNumber });

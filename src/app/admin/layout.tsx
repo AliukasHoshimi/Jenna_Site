@@ -22,15 +22,17 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     (d) => d.data().lastMessageDirection === "inbound"
   ).length;
   const balanceDueCount = depositPaidSnap.docs.filter((d) => {
-    const balanceDueDate = d.data().balanceDueDate;
-    return balanceDueDate && balanceDueDate.toDate() < new Date();
+    const invoice = d.data();
+    return !invoice.archivedAt && invoice.balanceDueDate && invoice.balanceDueDate.toDate() < new Date();
   }).length;
+  const awaitingPaymentCount = awaitingPaymentSnap.docs.filter((d) => !d.data().archivedAt).length;
+  const awaitingSignatureCount = awaitingSignatureSnap.docs.filter((d) => !d.data().archivedAt).length;
 
   const navItems = [
     { href: "/admin/threads", label: "Inbox", count: needsReplyCount },
     { href: "/admin/contacts", label: "Contacts", count: 0 },
-    { href: "/admin/invoices", label: "Invoices", count: awaitingPaymentSnap.size + balanceDueCount },
-    { href: "/admin/contracts", label: "Contracts", count: awaitingSignatureSnap.size },
+    { href: "/admin/invoices", label: "Invoices", count: awaitingPaymentCount + balanceDueCount },
+    { href: "/admin/contracts", label: "Contracts", count: awaitingSignatureCount },
     { href: "/admin/questionnaires", label: "Questionnaires", count: awaitingResponseSnap.size },
     { href: "/admin/templates", label: "Templates", count: 0 },
   ];

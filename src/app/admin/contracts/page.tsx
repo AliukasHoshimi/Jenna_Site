@@ -1,19 +1,29 @@
 import Link from "next/link";
 import { contractsCol, contactsCol } from "@/lib/firestore-collections";
-import { StatusBadge } from "@/components/status-badge";
+import { ContractList } from "./contract-list";
 
 export default async function ContractsPage() {
   const snap = await contractsCol().orderBy("createdAt", "desc").get();
-  const contracts = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const contracts = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((contract) => !contract.archivedAt);
   const contactIds = Array.from(new Set(contracts.map((c) => c.contactId)));
   const contactDocs = await Promise.all(contactIds.map((id) => contactsCol().doc(id).get()));
   const contactsById = new Map(contactDocs.filter((d) => d.exists).map((d) => [d.id, d.data()!]));
+
+  const rows = contracts.map((contract) => ({
+    id: contract.id,
+    title: contract.title,
+    contactName: contactsById.get(contract.contactId)?.name ?? "Unknown",
+    status: contract.status,
+  }));
 
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="font-display text-2xl text-foreground">Contracts</h1>
         <div className="flex items-center gap-3">
+          <Link href="/admin/contracts/archived" className="text-sm text-muted hover:text-foreground">
+            Archived
+          </Link>
           <Link href="/admin/contract-templates" className="text-sm text-muted hover:text-foreground">
             Manage templates
           </Link>
@@ -25,25 +35,7 @@ export default async function ContractsPage() {
           </Link>
         </div>
       </div>
-      <div className="divide-y divide-border rounded-lg border border-border bg-surface">
-        {contracts.length === 0 && <p className="p-4 text-sm text-muted">No contracts yet.</p>}
-        {contracts.map((contract) => {
-          const contact = contactsById.get(contract.contactId);
-          return (
-            <Link
-              key={contract.id}
-              href={`/admin/contracts/${contract.id}`}
-              className="flex items-center justify-between px-4 py-3 hover:bg-background"
-            >
-              <div>
-                <p className="text-sm font-medium text-foreground">{contract.title}</p>
-                <p className="text-xs text-muted">{contact?.name ?? "Unknown"}</p>
-              </div>
-              <StatusBadge status={contract.status} />
-            </Link>
-          );
-        })}
-      </div>
+      <ContractList contracts={rows} />
     </div>
   );
 }

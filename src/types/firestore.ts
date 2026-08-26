@@ -88,6 +88,7 @@ export interface Invoice {
   // Purely a nudge for Jenna (see displayInvoiceStatus); the balance is
   // still sent manually, same as every other outbound invoice.
   balanceDueDate: Timestamp | null;
+  archivedAt: Timestamp | null;
 }
 
 export interface ContractTemplate {
@@ -113,6 +114,7 @@ export interface Contract {
   signedIp: string | null;
   createdAt: Timestamp;
   sentAt: Timestamp | null;
+  archivedAt: Timestamp | null;
 }
 
 export type QuestionType = "short" | "long";

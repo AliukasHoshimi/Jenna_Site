@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
   let remindersSent = 0;
   for (const doc of snap.docs) {
     const invoice = doc.data();
+    if (invoice.archivedAt) continue; // Jenna archived it, stop nagging the client
     if (invoice.dueDate.toDate().getTime() >= now) continue; // not overdue yet
     if (invoice.lastReminderSentAt && now - invoice.lastReminderSentAt.toDate().getTime() < REMINDER_INTERVAL_MS) {
       continue; // reminded recently, don't nag

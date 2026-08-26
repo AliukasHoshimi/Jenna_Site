@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
     signedIp: null,
     createdAt: FieldValue.serverTimestamp() as unknown as Timestamp,
     sentAt: null,
+    archivedAt: null,
   });
 
   return NextResponse.json({ ok: true, id: docRef.id });
