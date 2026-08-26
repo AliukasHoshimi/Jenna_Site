@@ -156,4 +156,5 @@ export interface Questionnaire {
   createdAt: Timestamp;
   sentAt: Timestamp | null;
   completedAt: Timestamp | null;
+  archivedAt: Timestamp | null;
 }

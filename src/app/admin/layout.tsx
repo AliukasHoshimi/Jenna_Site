@@ -27,13 +27,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }).length;
   const awaitingPaymentCount = awaitingPaymentSnap.docs.filter((d) => !d.data().archivedAt).length;
   const awaitingSignatureCount = awaitingSignatureSnap.docs.filter((d) => !d.data().archivedAt).length;
+  const awaitingResponseCount = awaitingResponseSnap.docs.filter((d) => !d.data().archivedAt).length;
 
   const navItems = [
     { href: "/admin/threads", label: "Inbox", count: needsReplyCount },
     { href: "/admin/contacts", label: "Contacts", count: 0 },
     { href: "/admin/invoices", label: "Invoices", count: awaitingPaymentCount + balanceDueCount },
     { href: "/admin/contracts", label: "Contracts", count: awaitingSignatureCount },
-    { href: "/admin/questionnaires", label: "Questionnaires", count: awaitingResponseSnap.size },
+    { href: "/admin/questionnaires", label: "Questionnaires", count: awaitingResponseCount },
     { href: "/admin/templates", label: "Templates", count: 0 },
   ];
 
