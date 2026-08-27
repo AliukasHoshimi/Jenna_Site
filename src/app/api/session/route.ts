@@ -13,7 +13,18 @@ export async function POST(request: NextRequest) {
   try {
     // checkRevoked: reject a stale ID token so a cookie can't be minted from
     // a session that's already been signed out elsewhere.
-    await adminAuth().verifyIdToken(idToken, true);
+    const decoded = await adminAuth().verifyIdToken(idToken, true);
+
+    // Google sign-in creates a new Firebase user for *any* Google account on
+    // first login — without this check, anyone with a Gmail address could
+    // sign in and get an admin session. Email/password can't self-register
+    // (no public sign-up page), so this only bites the Google path today,
+    // but checking both keeps a single choke point.
+    const adminEmail = process.env.ADMIN_EMAIL;
+    if (!adminEmail || decoded.email?.toLowerCase() !== adminEmail.toLowerCase()) {
+      return NextResponse.json({ error: "This account isn't authorized." }, { status: 403 });
+    }
+
     const sessionCookie = await adminAuth().createSessionCookie(idToken, {
       expiresIn: SESSION_EXPIRES_IN_MS,
     });
