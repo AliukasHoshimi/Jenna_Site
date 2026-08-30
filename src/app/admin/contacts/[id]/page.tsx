@@ -1,7 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { contactsCol, threadsCol, invoicesCol, contractsCol, questionnairesCol } from "@/lib/firestore-collections";
+import {
+  contactsCol,
+  threadsCol,
+  invoicesCol,
+  contractsCol,
+  questionnairesCol,
+  calendarEventsCol,
+} from "@/lib/firestore-collections";
 import { StatusBadge } from "@/components/status-badge";
+import { LocalDateTime } from "@/components/local-date-time";
 import { NewThreadForm } from "./new-thread-form";
 import { ContactHeader } from "./contact-header";
 
@@ -11,12 +19,23 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
   if (!contactSnap.exists) notFound();
   const contact = contactSnap.data()!;
 
-  const [threadsSnap, invoicesSnap, contractsSnap, questionnairesSnap] = await Promise.all([
+  const [threadsSnap, invoicesSnap, contractsSnap, questionnairesSnap, calendarEventsSnap] = await Promise.all([
     threadsCol().where("contactId", "==", id).orderBy("lastMessageAt", "desc").get(),
     invoicesCol().where("contactId", "==", id).orderBy("createdAt", "desc").get(),
     contractsCol().where("contactId", "==", id).orderBy("createdAt", "desc").get(),
     questionnairesCol().where("contactId", "==", id).orderBy("createdAt", "desc").get(),
+    calendarEventsCol().where("contactId", "==", id).orderBy("start", "asc").get(),
   ]);
+
+  const now = new Date();
+  const allEvents = calendarEventsSnap.docs.map((d) => {
+    const data = d.data();
+    return { id: d.id, title: data.title, startIso: data.start.toDate().toISOString(), isPast: data.end.toDate() < now };
+  });
+  // Soonest upcoming first, then most-recent past — more useful at a glance
+  // than strict chronological order, which would bury "what's next" behind
+  // every past shoot.
+  const scheduledEvents = [...allEvents.filter((e) => !e.isPast), ...allEvents.filter((e) => e.isPast).reverse()];
 
   return (
     <div className="max-w-2xl">
@@ -33,6 +52,12 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
       />
 
       <div className="mt-6 flex gap-2">
+        <Link
+          href={`/admin/calendar/new?contactId=${id}`}
+          className="rounded-md border border-border bg-surface px-4 py-2 text-sm hover:border-accent"
+        >
+          New event
+        </Link>
         <Link
           href={`/admin/invoices/new?contactId=${id}`}
           className="rounded-md border border-border bg-surface px-4 py-2 text-sm hover:border-accent"
@@ -71,6 +96,34 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
               </Link>
             );
           })}
+        </div>
+      </section>
+
+      <section className="mt-8">
+        <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-muted">Scheduled</h2>
+        <div className="divide-y divide-border rounded-lg border border-border bg-surface">
+          {scheduledEvents.length === 0 && <p className="p-4 text-sm text-muted">Nothing scheduled yet.</p>}
+          {scheduledEvents.map((event) => (
+            <Link
+              key={event.id}
+              href={`/admin/calendar/${event.id}`}
+              className="flex items-center justify-between px-4 py-3 hover:bg-background"
+            >
+              <div>
+                <p className="text-sm font-medium text-foreground">{event.title}</p>
+                <p className="text-xs text-muted">
+                  <LocalDateTime iso={event.startIso} />
+                </p>
+              </div>
+              <span
+                className={`rounded-full px-2 py-0.5 text-xs ${
+                  event.isPast ? "bg-muted/10 text-muted" : "bg-accent/10 text-accent"
+                }`}
+              >
+                {event.isPast ? "Past" : "Upcoming"}
+              </span>
+            </Link>
+          ))}
         </div>
       </section>
 
