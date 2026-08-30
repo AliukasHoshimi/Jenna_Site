@@ -40,7 +40,7 @@ export default async function ThreadDetailPage({ params }: { params: Promise<{ i
           {nextEvent && (
             <Link
               href={`/admin/calendar/${nextEvent.id}`}
-              className="mt-1 inline-flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-xs text-accent hover:bg-accent/20"
+              className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/10 px-3 py-1.5 text-sm font-medium text-accent hover:bg-accent/20"
             >
               {nextEvent.title} · <LocalDateTime iso={nextEvent.start.toDate().toISOString()} />
             </Link>
