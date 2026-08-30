@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { calendarEventsCol, contactsCol, googleCalendarSettingsDoc } from "@/lib/firestore-collections";
-import { LocalDateTime } from "@/components/local-date-time";
 import { DisconnectButton } from "./disconnect-button";
+import { CalendarGrid } from "./calendar-grid";
 
 export default async function CalendarPage({
   searchParams,
@@ -35,12 +35,22 @@ export default async function CalendarPage({
   }
 
   const snap = await calendarEventsCol().orderBy("start", "asc").get();
-  const now = new Date();
-  const events = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((e) => e.end.toDate() >= now);
+  const events = snap.docs.map((d) => {
+    const data = d.data();
+    return {
+      id: d.id,
+      title: data.title,
+      contactId: data.contactId,
+      start: data.start.toDate().toISOString(),
+      end: data.end.toDate().toISOString(),
+    };
+  });
 
   const contactIds = Array.from(new Set(events.map((e) => e.contactId).filter((id): id is string => !!id)));
   const contactDocs = await Promise.all(contactIds.map((id) => contactsCol().doc(id).get()));
-  const contactsById = new Map(contactDocs.filter((d) => d.exists).map((d) => [d.id, d.data()!]));
+  const contactsById = Object.fromEntries(
+    contactDocs.filter((d) => d.exists).map((d) => [d.id, { name: d.data()!.name }])
+  );
 
   return (
     <div>
@@ -59,27 +69,7 @@ export default async function CalendarPage({
           </Link>
         </div>
       </div>
-      <div className="divide-y divide-border rounded-lg border border-border bg-surface">
-        {events.length === 0 && <p className="p-4 text-sm text-muted">No upcoming events.</p>}
-        {events.map((event) => {
-          const contact = event.contactId ? contactsById.get(event.contactId) : null;
-          return (
-            <Link
-              key={event.id}
-              href={`/admin/calendar/${event.id}`}
-              className="flex items-center justify-between px-4 py-3 hover:bg-background"
-            >
-              <div>
-                <p className="text-sm font-medium text-foreground">{event.title}</p>
-                <p className="text-xs text-muted">
-                  <LocalDateTime iso={event.start.toDate().toISOString()} />
-                  {contact ? ` · ${contact.name}` : ""}
-                </p>
-              </div>
-            </Link>
-          );
-        })}
-      </div>
+      <CalendarGrid events={events} contactsById={contactsById} />
     </div>
   );
 }
