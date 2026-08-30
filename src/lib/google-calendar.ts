@@ -4,8 +4,13 @@ import { googleCalendarSettingsDoc } from "@/lib/firestore-collections";
 
 // Events-only scope — enough to create/edit/delete events on her calendars
 // without also granting calendar management (creating/deleting calendars
-// themselves).
-const SCOPES = ["https://www.googleapis.com/auth/calendar.events"];
+// themselves). userinfo.email is added so the post-consent userinfo lookup
+// (to label which account got connected) is actually authorized — without
+// it, that call 401s even though the token exchange itself succeeds.
+const SCOPES = [
+  "https://www.googleapis.com/auth/calendar.events",
+  "https://www.googleapis.com/auth/userinfo.email",
+];
 
 function oauthClient(redirectUri: string) {
   const clientId = process.env.GOOGLE_CALENDAR_CLIENT_ID;
