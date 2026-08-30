@@ -158,3 +158,27 @@ export interface Questionnaire {
   completedAt: Timestamp | null;
   archivedAt: Timestamp | null;
 }
+
+// Singleton doc (settings/googleCalendar) holding the refresh token from
+// Jenna's one-time OAuth consent. Google Calendar itself stays the source
+// of truth for events — this just lets the server mint access tokens
+// without her re-authenticating on every request.
+export interface GoogleCalendarSettings {
+  refreshToken: string;
+  connectedEmail: string;
+  connectedAt: Timestamp;
+}
+
+// A thin index over the real Google Calendar event, so the admin UI can
+// list/link events by contact without re-parsing Calendar API responses.
+export interface CalendarEvent {
+  googleEventId: string;
+  contactId: string | null;
+  threadId: string | null;
+  title: string;
+  description: string | null;
+  start: Timestamp;
+  end: Timestamp;
+  htmlLink: string;
+  createdAt: Timestamp;
+}

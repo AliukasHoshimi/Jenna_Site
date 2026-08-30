@@ -14,6 +14,8 @@ import type {
   Contract,
   QuestionnaireTemplate,
   Questionnaire,
+  GoogleCalendarSettings,
+  CalendarEvent,
 } from "@/types/firestore";
 
 function converter<T extends FirebaseFirestore.DocumentData>(): FirestoreDataConverter<T> {
@@ -57,4 +59,15 @@ export function questionnaireTemplatesCol() {
 
 export function questionnairesCol() {
   return adminDb().collection("questionnaires").withConverter(converter<Questionnaire>());
+}
+
+export function googleCalendarSettingsDoc() {
+  return adminDb()
+    .collection("settings")
+    .doc("googleCalendar")
+    .withConverter(converter<GoogleCalendarSettings>());
+}
+
+export function calendarEventsCol() {
+  return adminDb().collection("calendarEvents").withConverter(converter<CalendarEvent>());
 }

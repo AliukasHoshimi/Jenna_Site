@@ -37,6 +37,12 @@ export default async function ThreadDetailPage({ params }: { params: Promise<{ i
           <StatusBadge status={thread.status} />
           <div className="flex items-center gap-3">
             <Link
+              href={`/admin/calendar/new?contactId=${thread.contactId}&threadId=${id}`}
+              className="text-xs text-accent hover:underline"
+            >
+              Schedule
+            </Link>
+            <Link
               href={`/admin/invoices/new?contactId=${thread.contactId}`}
               className="text-xs text-accent hover:underline"
             >

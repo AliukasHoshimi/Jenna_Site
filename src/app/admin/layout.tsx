@@ -32,6 +32,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const navItems = [
     { href: "/admin/threads", label: "Inbox", count: needsReplyCount },
     { href: "/admin/contacts", label: "Contacts", count: 0 },
+    { href: "/admin/calendar", label: "Calendar", count: 0 },
     { href: "/admin/invoices", label: "Invoices", count: awaitingPaymentCount + balanceDueCount },
     { href: "/admin/contracts", label: "Contracts", count: awaitingSignatureCount },
     { href: "/admin/questionnaires", label: "Questionnaires", count: awaitingResponseCount },
