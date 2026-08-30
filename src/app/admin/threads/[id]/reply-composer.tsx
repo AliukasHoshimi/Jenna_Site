@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ScheduleEventModal } from "./schedule-event-modal";
 
 const MAX_TEXTAREA_HEIGHT = 320; // px — grows with content up to this, then scrolls
 
@@ -18,11 +19,13 @@ function applyTemplate(body: string, clientName: string) {
 
 export function ReplyComposer({
   threadId,
+  contactId,
   contactName,
   templates,
   defaultStyled,
 }: {
   threadId: string;
+  contactId: string;
   contactName: string;
   templates: Template[];
   defaultStyled: boolean;
@@ -67,22 +70,25 @@ export function ReplyComposer({
 
   return (
     <div className="rounded-lg border border-border bg-surface p-3">
-      {templates.length > 0 && (
-        <select
-          onChange={(e) => handleTemplateSelect(e.target.value)}
-          defaultValue=""
-          className="mb-2 rounded-md border border-border bg-background px-2 py-1 text-xs text-muted"
-        >
-          <option value="" disabled>
-            Insert a template…
-          </option>
-          {templates.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
+      <div className="mb-2 flex items-center gap-3">
+        {templates.length > 0 && (
+          <select
+            onChange={(e) => handleTemplateSelect(e.target.value)}
+            defaultValue=""
+            className="rounded-md border border-border bg-background px-2 py-1 text-xs text-muted"
+          >
+            <option value="" disabled>
+              Insert a template…
             </option>
-          ))}
-        </select>
-      )}
+            {templates.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        )}
+        <ScheduleEventModal threadId={threadId} contactId={contactId} contactName={contactName} />
+      </div>
       <textarea
         ref={textareaRef}
         value={body}
