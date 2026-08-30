@@ -23,7 +23,8 @@ export async function GET(request: NextRequest) {
       connectedEmail: email,
       connectedAt: FieldValue.serverTimestamp() as unknown as Timestamp,
     });
-  } catch {
+  } catch (err) {
+    console.error("Google Calendar OAuth callback failed:", err);
     return NextResponse.redirect(`${origin}/admin/calendar?error=1`);
   }
 
