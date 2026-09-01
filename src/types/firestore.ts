@@ -13,6 +13,10 @@ export interface Contact {
   // creation if never messaged). Drives the invoice form's client sort.
   lastActivityAt: Timestamp;
   bookingStage: BookingStage;
+  // Lazily generated the first time Jenna requests a portal link for this
+  // contact; stable/reused after that. Public /portal/[token] resolves
+  // straight to this contact — same idea as Thread.bookingToken.
+  portalToken?: string | null;
 }
 
 export type ThreadStatus = "open" | "closed";

@@ -12,6 +12,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { LocalDateTime } from "@/components/local-date-time";
 import { NewThreadForm } from "./new-thread-form";
 import { ContactHeader } from "./contact-header";
+import { PortalLinkButton } from "./portal-link-button";
 
 export default async function ContactDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -76,6 +77,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
         >
           New questionnaire
         </Link>
+        <PortalLinkButton contactId={id} />
       </div>
 
       <section className="mt-8">
