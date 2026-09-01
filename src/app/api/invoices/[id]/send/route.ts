@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { requireAuth } from "@/lib/auth/require-auth";
-import { invoicesCol, contactsCol, threadsCol } from "@/lib/firestore-collections";
+import { invoicesCol, contactsCol, threadsCol, messagesCol } from "@/lib/firestore-collections";
 import { stripe } from "@/lib/stripe";
 import { sendEmail, replyAddressForToken } from "@/lib/mailgun";
 import { renderInvoicePdf } from "@/lib/pdf/render-invoice-pdf";
@@ -108,6 +108,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     stripeCheckoutUrl: checkoutUrl,
     sentAt: FieldValue.serverTimestamp(),
   });
+
+  if (invoice.threadId) {
+    await messagesCol(invoice.threadId).add({
+      direction: "system",
+      body: `Invoice #${invoice.invoiceNumber} sent — ${invoice.currency.toUpperCase()} ${amountDue.toFixed(2)} due`,
+      mailgunMessageId: null,
+      createdAt: FieldValue.serverTimestamp(),
+      linkHref: `/admin/invoices/${id}`,
+    });
+    await threadsCol().doc(invoice.threadId).update({ lastMessageAt: FieldValue.serverTimestamp() });
+  }
 
   return NextResponse.json({ ok: true, checkoutUrl });
 }

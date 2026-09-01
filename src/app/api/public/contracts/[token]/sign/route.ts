@@ -45,6 +45,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       body: `Contract "${contract.title}" — signed by ${signerName.trim()}`,
       mailgunMessageId: null,
       createdAt: FieldValue.serverTimestamp(),
+      linkHref: `/admin/contracts/${contractDoc.id}`,
     });
     await threadsCol().doc(contract.threadId).update({ lastMessageAt: FieldValue.serverTimestamp() });
   }

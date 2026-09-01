@@ -43,6 +43,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       body: `Questionnaire "${questionnaire.title}" — completed`,
       mailgunMessageId: null,
       createdAt: FieldValue.serverTimestamp(),
+      linkHref: `/admin/questionnaires/${doc.id}`,
     });
     await threadsCol().doc(questionnaire.threadId).update({ lastMessageAt: FieldValue.serverTimestamp() });
   }

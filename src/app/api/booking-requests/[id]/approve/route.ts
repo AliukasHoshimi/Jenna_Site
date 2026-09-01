@@ -115,6 +115,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     body: `Booking confirmed: ${pendingData.sessionTypeName} — ${formatBusinessTime(requestedStart, settings.timezone)}`,
     mailgunMessageId: null,
     createdAt: FieldValue.serverTimestamp(),
+    linkHref: `/admin/calendar/${calendarEventId}`,
   });
   await threadsCol().doc(pendingData.threadId).update({ lastMessageAt: FieldValue.serverTimestamp() });
 

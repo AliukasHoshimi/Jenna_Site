@@ -46,6 +46,10 @@ export interface Message {
   body: string;
   mailgunMessageId: string | null;
   createdAt: Timestamp;
+  // Optional admin-app deep link for "system" messages (e.g. a sent/signed/
+  // completed notice linking to that invoice/contract/questionnaire's
+  // detail page), so Jenna can click straight through from the thread.
+  linkHref?: string | null;
 }
 
 export interface Template {

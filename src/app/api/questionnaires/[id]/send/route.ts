@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { requireAuth } from "@/lib/auth/require-auth";
-import { questionnairesCol, contactsCol, threadsCol } from "@/lib/firestore-collections";
+import { questionnairesCol, contactsCol, threadsCol, messagesCol } from "@/lib/firestore-collections";
 import { sendEmail, replyAddressForToken } from "@/lib/mailgun";
 import { renderEmailHtml } from "@/lib/email-html";
 
@@ -55,5 +55,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   await questionnaireRef.update({ status: "sent", sentAt: FieldValue.serverTimestamp() });
+
+  if (questionnaire.threadId) {
+    await messagesCol(questionnaire.threadId).add({
+      direction: "system",
+      body: `Questionnaire "${questionnaire.title}" sent`,
+      mailgunMessageId: null,
+      createdAt: FieldValue.serverTimestamp(),
+      linkHref: `/admin/questionnaires/${id}`,
+    });
+    await threadsCol().doc(questionnaire.threadId).update({ lastMessageAt: FieldValue.serverTimestamp() });
+  }
+
   return NextResponse.json({ ok: true, respondUrl });
 }

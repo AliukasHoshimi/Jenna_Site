@@ -34,8 +34,7 @@ export function ReplyComposer({
   const [body, setBody] = useState("");
   const [styled, setStyled] = useState(defaultStyled);
   const [sending, setSending] = useState(false);
-  const [sendingLink, setSendingLink] = useState(false);
-  const [sendingPortalLink, setSendingPortalLink] = useState(false);
+  const [sendingLinkKind, setSendingLinkKind] = useState<"booking" | "portal" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -51,31 +50,24 @@ export function ReplyComposer({
     if (template) setBody(applyTemplate(template.body, contactName));
   }
 
-  async function handleSendBookingLink() {
-    setSendingLink(true);
+  async function handleInsertLink(kind: string) {
+    if (kind !== "booking" && kind !== "portal") return;
+    setSendingLinkKind(kind);
     setError(null);
-    const res = await fetch(`/api/threads/${threadId}/booking-link`, { method: "POST" });
+    const res = await fetch(
+      kind === "booking" ? `/api/threads/${threadId}/booking-link` : `/api/contacts/${contactId}/portal-link`,
+      { method: "POST" }
+    );
     const data = await res.json().catch(() => ({}));
-    setSendingLink(false);
+    setSendingLinkKind(null);
     if (res.ok && data.url) {
-      const line = `Pick a time that works for you: ${data.url}`;
+      const line =
+        kind === "booking"
+          ? `Pick a time that works for you: ${data.url}`
+          : `Here's a link to everything on your account: ${data.url}`;
       setBody((prev) => (prev.trim() ? `${prev}\n\n${line}` : line));
     } else {
-      setError(data.error ?? "Could not generate a booking link.");
-    }
-  }
-
-  async function handleSendPortalLink() {
-    setSendingPortalLink(true);
-    setError(null);
-    const res = await fetch(`/api/contacts/${contactId}/portal-link`, { method: "POST" });
-    const data = await res.json().catch(() => ({}));
-    setSendingPortalLink(false);
-    if (res.ok && data.url) {
-      const line = `Here's a link to everything on your account: ${data.url}`;
-      setBody((prev) => (prev.trim() ? `${prev}\n\n${line}` : line));
-    } else {
-      setError(data.error ?? "Could not generate a portal link.");
+      setError(data.error ?? `Could not generate a ${kind === "booking" ? "booking" : "portal"} link.`);
     }
   }
 
@@ -118,22 +110,18 @@ export function ReplyComposer({
           </select>
         )}
         <ScheduleEventModal threadId={threadId} contactId={contactId} contactName={contactName} />
-        <button
-          type="button"
-          onClick={handleSendBookingLink}
-          disabled={sendingLink}
-          className="text-xs text-accent hover:underline disabled:opacity-60"
+        <select
+          onChange={(e) => handleInsertLink(e.target.value)}
+          disabled={sendingLinkKind !== null}
+          value=""
+          className="rounded-md border border-border bg-background px-2 py-1 text-xs text-muted disabled:opacity-60"
         >
-          {sendingLink ? "…" : "Send booking link"}
-        </button>
-        <button
-          type="button"
-          onClick={handleSendPortalLink}
-          disabled={sendingPortalLink}
-          className="text-xs text-accent hover:underline disabled:opacity-60"
-        >
-          {sendingPortalLink ? "…" : "Send portal link"}
-        </button>
+          <option value="" disabled>
+            {sendingLinkKind ? "…" : "Insert a link…"}
+          </option>
+          <option value="booking">Booking link</option>
+          <option value="portal">Portal link</option>
+        </select>
       </div>
       <textarea
         ref={textareaRef}

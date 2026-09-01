@@ -76,11 +76,14 @@ export default async function ThreadDetailPage({ params }: { params: Promise<{ i
         {messagesSnap.docs.map((doc) => {
           const message = doc.data();
           if (message.direction === "system") {
-            return (
-              <div
-                key={doc.id}
-                className="mx-auto max-w-md rounded-md bg-surface px-3 py-1.5 text-center text-xs text-muted"
-              >
+            const className =
+              "mx-auto block max-w-md rounded-md bg-surface px-3 py-1.5 text-center text-xs text-muted";
+            return message.linkHref ? (
+              <Link key={doc.id} href={message.linkHref} className={`${className} hover:text-accent hover:underline`}>
+                {message.body}
+              </Link>
+            ) : (
+              <div key={doc.id} className={className}>
                 {message.body}
               </div>
             );

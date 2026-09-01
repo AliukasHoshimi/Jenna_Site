@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { requireAuth } from "@/lib/auth/require-auth";
-import { contractsCol, contactsCol } from "@/lib/firestore-collections";
+import { contractsCol, contactsCol, messagesCol, threadsCol } from "@/lib/firestore-collections";
 import { sendEmail } from "@/lib/mailgun";
 import { renderEmailHtml } from "@/lib/email-html";
 
@@ -49,5 +49,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   await contractRef.update({ status: "sent", sentAt: FieldValue.serverTimestamp() });
+
+  if (contract.threadId) {
+    await messagesCol(contract.threadId).add({
+      direction: "system",
+      body: `Contract "${contract.title}" sent`,
+      mailgunMessageId: null,
+      createdAt: FieldValue.serverTimestamp(),
+      linkHref: `/admin/contracts/${id}`,
+    });
+    await threadsCol().doc(contract.threadId).update({ lastMessageAt: FieldValue.serverTimestamp() });
+  }
+
   return NextResponse.json({ ok: true, signUrl });
 }

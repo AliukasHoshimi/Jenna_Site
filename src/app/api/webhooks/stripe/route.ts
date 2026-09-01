@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
             body: `Invoice #${invoice.invoiceNumber} — deposit paid, ${invoice.currency.toUpperCase()} ${invoice.depositAmount!.toFixed(2)} (balance due later)`,
             mailgunMessageId: null,
             createdAt: FieldValue.serverTimestamp(),
+            linkHref: `/admin/invoices/${invoiceDoc.id}`,
           });
           await threadsCol().doc(invoice.threadId).update({ lastMessageAt: FieldValue.serverTimestamp() });
         }
@@ -61,6 +62,7 @@ export async function POST(request: NextRequest) {
             body: `Invoice #${invoice.invoiceNumber} — paid, ${invoice.currency.toUpperCase()} ${amountPaid.toFixed(2)}`,
             mailgunMessageId: null,
             createdAt: FieldValue.serverTimestamp(),
+            linkHref: `/admin/invoices/${invoiceDoc.id}`,
           });
           await threadsCol().doc(invoice.threadId).update({ lastMessageAt: FieldValue.serverTimestamp() });
         }
