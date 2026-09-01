@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { DateCalendarDropdown } from "./date-calendar-dropdown";
 
 interface Slot {
   start: string;
@@ -180,25 +181,14 @@ export function BookingPicker({ token }: { token: string }) {
         <p className="text-sm text-muted">No open times right now — please reply to the email to find a time.</p>
       ) : (
         <>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {days.map((d) => (
-              <button
-                key={d.key}
-                type="button"
-                onClick={() => {
-                  setSelectedDay(d.key);
-                  setSelectedSlot(null);
-                }}
-                className={`shrink-0 rounded-md border px-3 py-2 text-sm ${
-                  d.key === selectedDay
-                    ? "border-accent bg-accent/10 text-accent"
-                    : "border-border bg-surface text-foreground hover:border-accent"
-                }`}
-              >
-                {d.date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
-              </button>
-            ))}
-          </div>
+          <DateCalendarDropdown
+            days={days}
+            selectedDay={selectedDay}
+            onSelect={(key) => {
+              setSelectedDay(key);
+              setSelectedSlot(null);
+            }}
+          />
 
           {activeDay && (
             <div className="flex flex-wrap gap-2">
