@@ -27,6 +27,10 @@ export async function POST(request: NextRequest) {
   const phone = typeof payload.phone === "string" ? payload.phone.trim() : null;
   const instagram = typeof payload.instagram === "string" ? payload.instagram.trim() : null;
   const source = typeof payload.source === "string" ? payload.source : "website";
+  // Free text from the marketing form's optional budget field — a number,
+  // a range, or "not sure." Capped defensively since it's public input.
+  const estimatedBudget =
+    typeof payload.budget === "string" && payload.budget.trim() ? payload.budget.trim().slice(0, 200) : null;
 
   const existingContact = await contactsCol().where("email", "==", email).limit(1).get();
   let contactId: string;
@@ -55,6 +59,7 @@ export async function POST(request: NextRequest) {
     createdAt: FieldValue.serverTimestamp() as unknown as Timestamp,
     lastMessageAt: FieldValue.serverTimestamp() as unknown as Timestamp,
     lastMessageDirection: "inbound",
+    estimatedBudget,
   });
 
   await messagesCol(newThread.id).add({

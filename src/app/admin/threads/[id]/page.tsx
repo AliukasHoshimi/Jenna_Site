@@ -36,6 +36,7 @@ export default async function ThreadDetailPage({ params }: { params: Promise<{ i
           <h1 className="font-display text-xl text-foreground">{thread.subject}</h1>
           <p className="text-sm text-muted">
             {contact?.name} · {contact?.email}
+            {thread.estimatedBudget && ` · Budget: ${thread.estimatedBudget}`}
           </p>
           {nextEvent && (
             <Link

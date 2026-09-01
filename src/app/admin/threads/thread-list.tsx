@@ -12,6 +12,7 @@ interface ThreadRow {
   needsReply: boolean;
   contactName: string;
   contactEmail: string;
+  estimatedBudget: string | null;
 }
 
 export function ThreadList({ threads }: { threads: ThreadRow[] }) {
@@ -74,7 +75,10 @@ export function ThreadList({ threads }: { threads: ThreadRow[] }) {
                 )}
                 <div>
                   <p className="text-sm font-medium text-foreground">{thread.contactName}</p>
-                  <p className="text-xs text-muted">{thread.subject}</p>
+                  <p className="text-xs text-muted">
+                    {thread.subject}
+                    {thread.estimatedBudget && ` · ${thread.estimatedBudget}`}
+                  </p>
                 </div>
               </div>
               <StatusBadge status={thread.status} />

@@ -18,6 +18,7 @@ export default async function ThreadsLayout({ children }: { children: React.Reac
       needsReply: t.lastMessageDirection === "inbound",
       contactName: contact?.name ?? "Unknown",
       contactEmail: contact?.email ?? "",
+      estimatedBudget: t.estimatedBudget ?? null,
     };
   });
 

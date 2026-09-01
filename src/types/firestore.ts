@@ -39,6 +39,11 @@ export interface Thread {
   // this thread; stable/reused after that. Public /book/[token] resolves
   // straight to this thread, same idea as replyToken for email threading.
   bookingToken?: string | null;
+  // Free-text budget the lead typed on the marketing site's intake form
+  // (optional field there too — a number, a range, or "not sure"). Scoped
+  // per-thread rather than the contact, since the same person inquiring
+  // again later could have an entirely different budget in mind.
+  estimatedBudget?: string | null;
 }
 
 export interface Message {

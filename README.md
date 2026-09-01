@@ -133,10 +133,17 @@ sync automatically.
 
 The marketing site's contact form should POST server-to-server to
 `/api/public/intake` with a JSON body `{ name, email, phone?, instagram?,
-message, source? }` and header `x-intake-secret: <INTAKE_API_SECRET>`. This
-creates/reuses a contact and opens a new thread with the message as the
-first inbound message. The secret must live in the marketing site's own
-backend/serverless function — never in its client-side JS.
+message, source?, budget? }` and header `x-intake-secret:
+<INTAKE_API_SECRET>`. This creates/reuses a contact and opens a new thread
+with the message as the first inbound message. The secret must live in the
+marketing site's own backend/serverless function — never in its client-side
+JS.
+
+`budget` is optional free text (a number, a range, or "not sure") from the
+form's estimated-budget field — stored per-thread as `estimatedBudget`
+(not on the contact, since the same person inquiring again later could
+have a different budget in mind), shown on the thread list and the thread
+detail page. Capped at 200 characters server-side.
 
 ## Deploying (Vercel)
 
