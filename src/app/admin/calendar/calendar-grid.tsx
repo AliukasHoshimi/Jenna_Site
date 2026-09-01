@@ -13,11 +13,31 @@ interface EventItem {
   end: string;
 }
 
+interface PendingItem {
+  id: string;
+  sessionTypeName: string;
+  contactId: string | null;
+  threadId: string;
+  start: string;
+  end: string;
+}
+
+interface GridItem {
+  key: string;
+  title: string;
+  contactId: string | null;
+  start: string;
+  href: string;
+  pending: boolean;
+}
+
 export function CalendarGrid({
   events,
+  pendingRequests,
   contactsById,
 }: {
   events: EventItem[];
+  pendingRequests: PendingItem[];
   contactsById: Record<string, { name: string }>;
 }) {
   const [mounted, setMounted] = useState(false);
@@ -39,19 +59,41 @@ export function CalendarGrid({
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
   const totalCells = Math.ceil((firstWeekday + daysInMonth) / 7) * 7;
 
-  const eventsByDay = useMemo(() => {
-    const map = new Map<number, EventItem[]>();
-    for (const event of events) {
-      const d = new Date(event.start);
+  const allItems: GridItem[] = useMemo(
+    () => [
+      ...events.map((e) => ({
+        key: `event-${e.id}`,
+        title: e.title,
+        contactId: e.contactId,
+        start: e.start,
+        href: `/admin/calendar/${e.id}`,
+        pending: false,
+      })),
+      ...pendingRequests.map((r) => ({
+        key: `pending-${r.id}`,
+        title: r.sessionTypeName,
+        contactId: r.contactId,
+        start: r.start,
+        href: `/admin/threads/${r.threadId}`,
+        pending: true,
+      })),
+    ],
+    [events, pendingRequests]
+  );
+
+  const itemsByDay = useMemo(() => {
+    const map = new Map<number, GridItem[]>();
+    for (const item of allItems) {
+      const d = new Date(item.start);
       if (d.getFullYear() === year && d.getMonth() === monthIndex) {
         const day = d.getDate();
         if (!map.has(day)) map.set(day, []);
-        map.get(day)!.push(event);
+        map.get(day)!.push(item);
       }
     }
     for (const list of map.values()) list.sort((a, b) => a.start.localeCompare(b.start));
     return map;
-  }, [events, year, monthIndex]);
+  }, [allItems, year, monthIndex]);
 
   if (!mounted) {
     return (
@@ -89,9 +131,17 @@ export function CalendarGrid({
             ›
           </button>
         </div>
-        <button type="button" onClick={() => setViewDate(new Date())} className="text-xs text-accent hover:underline">
-          Today
-        </button>
+        <div className="flex items-center gap-4">
+          {pendingRequests.length > 0 && (
+            <span className="flex items-center gap-1.5 text-xs text-warm">
+              <span className="h-2 w-2 rounded-full border border-warm" />
+              {pendingRequests.length} pending
+            </span>
+          )}
+          <button type="button" onClick={() => setViewDate(new Date())} className="text-xs text-accent hover:underline">
+            Today
+          </button>
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-lg border border-border">
@@ -111,7 +161,7 @@ export function CalendarGrid({
               today.getFullYear() === year &&
               today.getMonth() === monthIndex &&
               today.getDate() === dayNum;
-            const dayEvents = inMonth ? (eventsByDay.get(dayNum) ?? []) : [];
+            const dayItems = inMonth ? (itemsByDay.get(dayNum) ?? []) : [];
             return (
               <div
                 key={i}
@@ -129,25 +179,29 @@ export function CalendarGrid({
                       {dayNum}
                     </span>
                     <div className="mt-1 space-y-0.5">
-                      {dayEvents.slice(0, 3).map((event) => {
-                        const contact = event.contactId ? contactsById[event.contactId] : null;
-                        const time = new Date(event.start).toLocaleTimeString("en-US", {
+                      {dayItems.slice(0, 3).map((item) => {
+                        const contact = item.contactId ? contactsById[item.contactId] : null;
+                        const time = new Date(item.start).toLocaleTimeString("en-US", {
                           hour: "numeric",
                           minute: "2-digit",
                         });
                         return (
                           <Link
-                            key={event.id}
-                            href={`/admin/calendar/${event.id}`}
-                            title={`${event.title}${contact ? ` · ${contact.name}` : ""}`}
-                            className="block truncate rounded bg-accent/10 px-1 py-0.5 text-[11px] text-accent hover:bg-accent/20"
+                            key={item.key}
+                            href={item.href}
+                            title={`${item.pending ? "Pending: " : ""}${item.title}${contact ? ` · ${contact.name}` : ""}`}
+                            className={
+                              item.pending
+                                ? "block truncate rounded border border-dashed border-warm bg-warm/10 px-1 py-0.5 text-[11px] text-warm hover:bg-warm/20"
+                                : "block truncate rounded bg-accent/10 px-1 py-0.5 text-[11px] text-accent hover:bg-accent/20"
+                            }
                           >
-                            {time} {event.title}
+                            {time} {item.title}
                           </Link>
                         );
                       })}
-                      {dayEvents.length > 3 && (
-                        <p className="px-1 text-[11px] text-muted">+{dayEvents.length - 3} more</p>
+                      {dayItems.length > 3 && (
+                        <p className="px-1 text-[11px] text-muted">+{dayItems.length - 3} more</p>
                       )}
                     </div>
                   </>

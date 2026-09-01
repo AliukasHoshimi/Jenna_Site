@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth/session";
 import { LogoutButton } from "@/components/logout-button";
-import { threadsCol, invoicesCol, contractsCol, questionnairesCol } from "@/lib/firestore-collections";
+import { threadsCol, invoicesCol, contractsCol, questionnairesCol, bookingRequestsCol } from "@/lib/firestore-collections";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   // Every /admin route is protected here: no nested page renders until the
@@ -10,13 +10,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const [openThreadsSnap, awaitingPaymentSnap, depositPaidSnap, awaitingSignatureSnap, awaitingResponseSnap] =
+  const [openThreadsSnap, awaitingPaymentSnap, depositPaidSnap, awaitingSignatureSnap, awaitingResponseSnap, pendingBookingsSnap] =
     await Promise.all([
       threadsCol().where("status", "==", "open").get(),
       invoicesCol().where("status", "in", ["sent", "overdue"]).get(),
       invoicesCol().where("status", "==", "deposit_paid").get(),
       contractsCol().where("status", "==", "sent").get(),
       questionnairesCol().where("status", "==", "sent").get(),
+      bookingRequestsCol().where("status", "==", "pending").get(),
     ]);
   const needsReplyCount = openThreadsSnap.docs.filter(
     (d) => d.data().lastMessageDirection === "inbound"
@@ -28,11 +29,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const awaitingPaymentCount = awaitingPaymentSnap.docs.filter((d) => !d.data().archivedAt).length;
   const awaitingSignatureCount = awaitingSignatureSnap.docs.filter((d) => !d.data().archivedAt).length;
   const awaitingResponseCount = awaitingResponseSnap.docs.filter((d) => !d.data().archivedAt).length;
+  const now = Date.now();
+  const pendingBookingsCount = pendingBookingsSnap.docs.filter((d) => d.data().expiresAt.toDate().getTime() > now).length;
 
   const navItems = [
     { href: "/admin/threads", label: "Inbox", count: needsReplyCount },
     { href: "/admin/contacts", label: "Contacts", count: 0 },
-    { href: "/admin/calendar", label: "Calendar", count: 0 },
+    { href: "/admin/calendar", label: "Calendar", count: pendingBookingsCount },
     { href: "/admin/invoices", label: "Invoices", count: awaitingPaymentCount + balanceDueCount },
     { href: "/admin/contracts", label: "Contracts", count: awaitingSignatureCount },
     { href: "/admin/questionnaires", label: "Questionnaires", count: awaitingResponseCount },

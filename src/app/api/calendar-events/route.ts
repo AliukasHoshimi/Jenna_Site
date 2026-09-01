@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { requireAuth } from "@/lib/auth/require-auth";
-import { calendarEventsCol, contactsCol } from "@/lib/firestore-collections";
-import { getCalendarClient } from "@/lib/google-calendar";
+import { contactsCol } from "@/lib/firestore-collections";
+import { insertGoogleCalendarEvent, createCalendarEventMirror } from "@/lib/google-calendar";
 
 export async function POST(request: NextRequest) {
   const { user, response } = await requireAuth();
@@ -31,32 +30,25 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const calendar = await getCalendarClient();
-    const { data: googleEvent } = await calendar.events.insert({
-      calendarId: "primary",
-      sendUpdates: attendeeEmail ? "all" : "none",
-      requestBody: {
-        summary: title,
-        description: description || undefined,
-        start: { dateTime: start },
-        end: { dateTime: end },
-        attendees: attendeeEmail ? [{ email: attendeeEmail }] : undefined,
-      },
-    });
-
-    const docRef = await calendarEventsCol().add({
-      googleEventId: googleEvent.id!,
-      contactId: contactId ?? null,
-      threadId: threadId ?? null,
+    const { googleEventId, htmlLink } = await insertGoogleCalendarEvent({
       title,
       description: description ?? null,
-      start: Timestamp.fromDate(new Date(start)),
-      end: Timestamp.fromDate(new Date(end)),
-      htmlLink: googleEvent.htmlLink ?? "",
-      createdAt: FieldValue.serverTimestamp() as unknown as Timestamp,
+      start,
+      end,
+      attendeeEmail,
+    });
+    const id = await createCalendarEventMirror({
+      googleEventId,
+      htmlLink,
+      title,
+      description: description ?? null,
+      start,
+      end,
+      contactId: contactId ?? null,
+      threadId: threadId ?? null,
     });
 
-    return NextResponse.json({ ok: true, id: docRef.id });
+    return NextResponse.json({ ok: true, id });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Could not create event" },

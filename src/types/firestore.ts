@@ -31,6 +31,10 @@ export interface Thread {
   // Direction of the most recent message, used to flag threads awaiting
   // Jenna's reply. Absent on threads created before this field existed.
   lastMessageDirection?: MessageDirection;
+  // Lazily generated the first time Jenna clicks "Send booking link" on
+  // this thread; stable/reused after that. Public /book/[token] resolves
+  // straight to this thread, same idea as replyToken for email threading.
+  bookingToken?: string | null;
 }
 
 export interface Message {
@@ -181,4 +185,73 @@ export interface CalendarEvent {
   end: Timestamp;
   htmlLink: string;
   createdAt: Timestamp;
+}
+
+// "approving" is a short-lived transactional state used only inside the
+// approve endpoint's status-guard transaction — it exists specifically to
+// make a double-click (or two open tabs) approving the same request
+// impossible, by giving the second attempt a non-"pending" status to bounce
+// off before either touches Google Calendar.
+export type BookingRequestStatus = "pending" | "approving" | "approved" | "declined" | "expired" | "cancelled";
+
+// One doc per client slot-request attempt submitted through a thread's
+// /book/[token] link (see Thread.bookingToken) — not one doc per link, since
+// the same link can be reused across multiple attempts (e.g. after a
+// decline). Approving a request creates a real CalendarEvent; the request
+// doc itself is never the source of truth for what's on the calendar.
+export interface BookingRequest {
+  contactId: string;
+  threadId: string;
+  requestedStart: Timestamp;
+  requestedEnd: Timestamp;
+  clientNote: string | null;
+  // Snapshotted at request time (id + name), same reasoning as
+  // QuestionnaireAnswer snapshotting a question's label — editing or
+  // removing a session type later shouldn't retroactively change what an
+  // already-submitted request says it was for.
+  sessionTypeId: string;
+  sessionTypeName: string;
+  status: BookingRequestStatus;
+  // Written immediately after the Google Calendar insert succeeds, before
+  // any other follow-up write — lets a retry (or manual inspection) tell a
+  // real event already exists and must not be inserted a second time.
+  googleEventId: string | null;
+  // The mirror CalendarEvent doc id, written once that doc is created.
+  calendarEventId: string | null;
+  createdAt: Timestamp;
+  // createdAt + the request-expiry window; a still-"pending" request past
+  // this is treated as non-blocking by the availability engine even before
+  // the expiry cron formally flips its status.
+  expiresAt: Timestamp;
+  respondedAt: Timestamp | null;
+}
+
+// One selectable visit type on the public booking page (e.g. "Mini session
+// — 30 min", "Full session — 2 hr"). id is stable across edits so existing
+// BookingRequests keep resolving correctly even if the name changes later.
+export interface BookingSessionType {
+  id: string;
+  name: string;
+  durationMinutes: number;
+  description: string | null;
+}
+
+// Singleton doc (settings/booking). Falls back to sensible hardcoded
+// defaults (see DEFAULT_BOOKING_SETTINGS in booking-availability.ts) when
+// this doc doesn't exist yet, so self-booking works before Jenna ever visits
+// the settings page.
+export interface BookingSettings {
+  // IANA zone, e.g. "America/New_York" — working hours are anchored here,
+  // not to the server's UTC clock or a viewer's browser zone.
+  timezone: string;
+  bufferMinutes: number;
+  minNoticeHours: number;
+  bookingWindowDays: number;
+  requestExpiryHours: number;
+  // Kill switch — lets Jenna pause new booking requests without
+  // disconnecting Google Calendar or invalidating already-sent links.
+  bookingEnabled: boolean;
+  // 0 = Sunday .. 6 = Saturday, "HH:mm" 24h local time. Absent = not bookable.
+  workingHours: Partial<Record<number, { start: string; end: string }>>;
+  sessionTypes: BookingSessionType[];
 }

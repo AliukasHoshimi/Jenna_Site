@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { calendarEventsCol, contactsCol, googleCalendarSettingsDoc } from "@/lib/firestore-collections";
+import { calendarEventsCol, contactsCol, googleCalendarSettingsDoc, bookingRequestsCol } from "@/lib/firestore-collections";
 import { DisconnectButton } from "./disconnect-button";
 import { CalendarGrid } from "./calendar-grid";
+import { PendingRequestsPanel } from "./pending-requests-panel";
 
 export default async function CalendarPage({
   searchParams,
@@ -34,7 +35,10 @@ export default async function CalendarPage({
     );
   }
 
-  const snap = await calendarEventsCol().orderBy("start", "asc").get();
+  const [snap, pendingSnap] = await Promise.all([
+    calendarEventsCol().orderBy("start", "asc").get(),
+    bookingRequestsCol().where("status", "==", "pending").orderBy("requestedStart", "asc").get(),
+  ]);
   const events = snap.docs.map((d) => {
     const data = d.data();
     return {
@@ -45,8 +49,20 @@ export default async function CalendarPage({
       end: data.end.toDate().toISOString(),
     };
   });
+  // Expired-but-unflipped requests (the cron hasn't caught up yet) aren't
+  // real pending decisions anymore — hide them here too, matching how the
+  // availability engine already treats them as non-blocking.
+  const now = Date.now();
+  const pendingRequests = pendingSnap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .filter((r) => r.expiresAt.toDate().getTime() > now);
 
-  const contactIds = Array.from(new Set(events.map((e) => e.contactId).filter((id): id is string => !!id)));
+  const contactIds = Array.from(
+    new Set([
+      ...events.map((e) => e.contactId),
+      ...pendingRequests.map((r) => r.contactId),
+    ].filter((id): id is string => !!id))
+  );
   const contactDocs = await Promise.all(contactIds.map((id) => contactsCol().doc(id).get()));
   const contactsById = Object.fromEntries(
     contactDocs.filter((d) => d.exists).map((d) => [d.id, { name: d.data()!.name }])
@@ -60,6 +76,9 @@ export default async function CalendarPage({
           {connected && <p className="mt-1 text-xs text-success">Linked to {settings.connectedEmail}.</p>}
         </div>
         <div className="flex items-center gap-4">
+          <Link href="/admin/calendar/settings" className="text-xs text-muted hover:text-foreground">
+            Booking settings
+          </Link>
           <DisconnectButton connectedEmail={settings.connectedEmail} />
           <Link
             href="/admin/calendar/new"
@@ -69,7 +88,31 @@ export default async function CalendarPage({
           </Link>
         </div>
       </div>
-      <CalendarGrid events={events} contactsById={contactsById} />
+      {pendingRequests.length > 0 && (
+        <PendingRequestsPanel
+          requests={pendingRequests.map((r) => ({
+            id: r.id,
+            contactName: contactsById[r.contactId]?.name ?? "Unknown client",
+            threadId: r.threadId,
+            sessionTypeName: r.sessionTypeName,
+            startIso: r.requestedStart.toDate().toISOString(),
+            endIso: r.requestedEnd.toDate().toISOString(),
+            clientNote: r.clientNote,
+          }))}
+        />
+      )}
+      <CalendarGrid
+        events={events}
+        pendingRequests={pendingRequests.map((r) => ({
+          id: r.id,
+          sessionTypeName: r.sessionTypeName,
+          contactId: r.contactId,
+          threadId: r.threadId,
+          start: r.requestedStart.toDate().toISOString(),
+          end: r.requestedEnd.toDate().toISOString(),
+        }))}
+        contactsById={contactsById}
+      />
     </div>
   );
 }

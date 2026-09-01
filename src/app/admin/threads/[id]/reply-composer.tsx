@@ -34,6 +34,7 @@ export function ReplyComposer({
   const [body, setBody] = useState("");
   const [styled, setStyled] = useState(defaultStyled);
   const [sending, setSending] = useState(false);
+  const [sendingLink, setSendingLink] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -47,6 +48,20 @@ export function ReplyComposer({
   function handleTemplateSelect(templateId: string) {
     const template = templates.find((t) => t.id === templateId);
     if (template) setBody(applyTemplate(template.body, contactName));
+  }
+
+  async function handleSendBookingLink() {
+    setSendingLink(true);
+    setError(null);
+    const res = await fetch(`/api/threads/${threadId}/booking-link`, { method: "POST" });
+    const data = await res.json().catch(() => ({}));
+    setSendingLink(false);
+    if (res.ok && data.url) {
+      const line = `Pick a time that works for you: ${data.url}`;
+      setBody((prev) => (prev.trim() ? `${prev}\n\n${line}` : line));
+    } else {
+      setError(data.error ?? "Could not generate a booking link.");
+    }
   }
 
   async function handleSend() {
@@ -88,6 +103,14 @@ export function ReplyComposer({
           </select>
         )}
         <ScheduleEventModal threadId={threadId} contactId={contactId} contactName={contactName} />
+        <button
+          type="button"
+          onClick={handleSendBookingLink}
+          disabled={sendingLink}
+          className="text-xs text-accent hover:underline disabled:opacity-60"
+        >
+          {sendingLink ? "…" : "Send booking link"}
+        </button>
       </div>
       <textarea
         ref={textareaRef}
