@@ -6,18 +6,21 @@ the public marketing site. Full context and design decisions are in the
 build brief this project was scaffolded from.
 
 **Status:** live at `studio.samsarafilmss.com` on Vercel (not Firebase App
-Hosting — see note below). Firebase (Firestore + Auth), Mailgun (send +
+Hosting — see Deploying below). Firebase (Firestore + Auth), Mailgun (send +
 inbound routing, real DNS verified), and Stripe (test mode: secret key +
 webhook endpoint, both configured) are all real and wired up. Contracts
-with e-signature, client intake questionnaires, and deposit/balance
-invoicing have shipped since the original scaffold. Still on Stripe
-test-mode keys — switch to live keys only once the payment flow's been
-verified end to end.
+with e-signature, client intake questionnaires, deposit/balance invoicing,
+a Google Calendar integration, and client self-booking have all shipped
+since the original scaffold. Still on Stripe test-mode keys — switch to
+live keys (and add a **new, separate live-mode webhook** — Stripe doesn't
+carry test-mode webhooks over) only once the payment flow's been verified
+end to end.
 
 ## Stack
 
-Next.js (App Router) on Firebase App Hosting, Firestore, Firebase Auth,
-Mailgun (send + inbound routing), Stripe Checkout, `@react-pdf/renderer`.
+Next.js (App Router) on Vercel, Firestore, Firebase Auth, Mailgun (send +
+inbound routing), Stripe Checkout, Google Calendar API,
+`@react-pdf/renderer`.
 
 ## Prerequisites
 
@@ -31,8 +34,10 @@ Mailgun (send + inbound routing), Stripe Checkout, `@react-pdf/renderer`.
 3. **Create a Stripe account.** Test-mode keys are enough to build and
    verify against; switch to live keys only once the whole flow works.
 4. **DNS access to `samsarafilmss.com`**, to point `studio.samsarafilmss.com`
-   at this app's Firebase App Hosting deployment and to add Mailgun's
-   records.
+   at the Vercel deployment and to add Mailgun's records.
+5. **A Google Cloud OAuth client** (separate from the Firebase Auth login
+   client) with the Calendar API enabled, for the Calendar integration —
+   see `.env.local.example` for the exact scopes/setup notes.
 
 Don't wire real integration code against placeholder values and call it
 done — until these exist, treat every integration point below as untested.
@@ -55,16 +60,48 @@ Other useful scripts: `npm run build`, `npm run typecheck`, `npm run lint`.
 ## Environment variables
 
 See `.env.local.example` for the full list with descriptions. In production
-(Firebase App Hosting) these are set as secrets, not plain env vars — see
-Deployment below.
+these are set in the Vercel project's dashboard (Settings → Environment
+Variables), not committed anywhere — see Deploying below.
 
 ## Data model
 
 Firestore collections: `contacts`, `threads` (with a `messages` subcollection
-per thread), `templates`, `invoices`. See `src/types/firestore.ts` for the
-exact shape. Firestore security rules (`firestore.rules`) deny all direct
-client-side access — every read/write goes through this app's server code
-(API routes and server components) using the Firebase Admin SDK.
+per thread), `templates`, `invoices`, `contracts`, `questionnaires`,
+`calendarEvents` (a thin mirror of real Google Calendar events),
+`bookingRequests` (client self-booking requests), plus singleton docs
+`settings/googleCalendar` and `settings/booking`. See
+`src/types/firestore.ts` for the exact shape. Firestore security rules
+(`firestore.rules`) deny all direct client-side access — every read/write
+goes through this app's server code (API routes and server components)
+using the Firebase Admin SDK.
+
+## Calendar & self-booking
+
+Jenna connects her Google Calendar once (`/admin/calendar`, OAuth via a
+dedicated client — see Prerequisites). Once connected:
+
+- Events can be created manually (Calendar page, or the "Schedule" popup
+  on a thread) — these both create a real Google Calendar event and a
+  `calendarEvents` mirror doc.
+- **Self-booking**: clicking "Send booking link" on a thread generates a
+  stable per-thread link (`/book/[token]`) that Jenna sends manually in a
+  reply. A client picks a session type and an open slot there; submitting
+  immediately creates a `pending` `bookingRequests` doc that holds the slot
+  (a Firestore transaction prevents two overlapping submissions), but
+  nothing lands on the real calendar until Jenna approves it from the
+  Calendar page's pending-requests panel. Availability is computed against
+  Jenna's **real** Google Calendar via `freebusy.query`
+  (`src/lib/booking-availability.ts`), not just events created through this
+  app — blocking time directly on her real calendar (a vacation, a
+  personal appointment) closes those slots automatically, no separate
+  "blackout" feature needed.
+- Working hours, buffer time, minimum notice, booking window, and the
+  selectable session types (name/duration/description) are configurable at
+  `/admin/calendar/settings`, with hardcoded fallback defaults
+  (`DEFAULT_BOOKING_SETTINGS` in `src/lib/booking-availability.ts`) so the
+  feature works before that page is ever visited. **Confirm the timezone
+  there is actually correct** — it drives every slot time shown to real
+  clients.
 
 `scripts/seed.mjs` writes a small set of fake contacts/threads/templates/
 invoices for Phase 2 UI verification (`node scripts/seed.mjs`, reads
@@ -101,28 +138,36 @@ creates/reuses a contact and opens a new thread with the message as the
 first inbound message. The secret must live in the marketing site's own
 backend/serverless function — never in its client-side JS.
 
-## Deploying (Firebase App Hosting)
+## Deploying (Vercel)
 
-1. `firebase login`, then set the real project ID in `.firebaserc`.
-2. Create each secret referenced in `apphosting.yaml`:
-   ```bash
-   firebase apphosting:secrets:set FIREBASE_SERVICE_ACCOUNT_KEY
-   firebase apphosting:secrets:set STRIPE_SECRET_KEY
-   # ...and so on for every variable in apphosting.yaml
-   ```
-3. `firebase deploy --only firestore:rules` to publish `firestore.rules`.
-4. Set up the App Hosting backend (`firebase apphosting:backends:create`)
-   and connect it to this repo, or deploy directly — see the [App Hosting
-   docs](https://firebase.google.com/docs/app-hosting).
-5. Point `studio.samsarafilmss.com` at the App Hosting backend (custom
-   domain setup in the Firebase console).
-6. In Mailgun, route inbound mail for `reply+*@mail.samsarafilmss.com` (and
+Despite the `apphosting.yaml`/`.firebaserc` left over from the original
+scaffold, this app actually deploys on **Vercel**, connected to the GitHub
+repo for auto-deploy on push to `main`. Firebase is used only for
+Firestore + Auth, not hosting.
+
+1. In the Vercel project's dashboard, set every variable from
+   `.env.local.example` under Settings → Environment Variables (Production,
+   and Preview if you want preview deploys to work too).
+2. `firebase login`, then `firebase deploy --only firestore:rules` and
+   `firebase deploy --only firestore:indexes` to publish `firestore.rules`
+   and `firestore.indexes.json` against the real project.
+3. Point `studio.samsarafilmss.com` at the Vercel project (custom domain
+   setup in the Vercel dashboard).
+4. In Mailgun, route inbound mail for `reply+*@mail.samsarafilmss.com` (and
    optionally a catch-all address) to
    `https://studio.samsarafilmss.com/api/webhooks/mailgun-inbound`.
-7. In Stripe, add a webhook endpoint for
+5. In Stripe, add a webhook endpoint for
    `https://studio.samsarafilmss.com/api/webhooks/stripe` listening for
    `checkout.session.completed`, and put its signing secret in
-   `STRIPE_WEBHOOK_SECRET`.
+   `STRIPE_WEBHOOK_SECRET`. **Test mode and live mode webhooks are
+   separate** — switching to live Stripe keys means creating a new webhook
+   endpoint under live mode too, not just swapping the secret key.
+6. In Google Cloud Console, add both `http://localhost:3000/api/google-calendar/callback`
+   (for local dev) and `https://studio.samsarafilmss.com/api/google-calendar/callback`
+   as authorized redirect URIs on the Calendar OAuth client.
+7. Vercel Cron (`vercel.json`) runs the overdue-invoice-reminder and
+   booking-request-expiry jobs — no extra setup needed beyond `CRON_SECRET`
+   being set, but note Vercel's Hobby plan limits cron jobs to once/day.
 
 ## Testing notes
 
@@ -137,5 +182,7 @@ backend/serverless function — never in its client-side JS.
 
 ## What this app deliberately doesn't do
 
-No scheduling/calendar booking, no client photo galleries/downloads/prints
-— those stay on Pixieset.
+No client photo galleries/downloads/prints — those stay on Pixieset. No
+client-facing portal beyond the one-off emailed links (pay invoice, sign
+contract, fill questionnaire, book a session) — there's no single page
+showing a client everything tied to their booking at once.

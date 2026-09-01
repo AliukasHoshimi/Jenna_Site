@@ -5,13 +5,10 @@ import type { BookingSettings } from "@/types/firestore";
 
 /**
  * Used whenever settings/booking doesn't exist yet, so self-booking works
- * before Jenna ever visits the settings page. `timezone` is a PLACEHOLDER:
- * nothing elsewhere in this codebase indicates Jenna's real location — a
- * wrong zone here means wrong actual slot times for real clients, so this
- * should be confirmed/corrected on the settings page before real use.
+ * before Jenna ever visits the settings page.
  */
 export const DEFAULT_BOOKING_SETTINGS: BookingSettings = {
-  timezone: "America/New_York",
+  timezone: "America/Los_Angeles",
   bufferMinutes: 30,
   minNoticeHours: 24,
   bookingWindowDays: 60,
