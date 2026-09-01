@@ -25,7 +25,7 @@ export default async function QuestionnairesPage() {
             Archived
           </Link>
           <Link
-            href="/admin/questionnaire-templates"
+            href="/admin/templates?tab=questionnaires"
             className="text-sm text-muted hover:text-foreground"
           >
             Manage templates

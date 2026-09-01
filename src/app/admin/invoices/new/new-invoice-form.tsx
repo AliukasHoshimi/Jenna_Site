@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ContactSearchSelect } from "@/components/contact-search-select";
 
 interface ContactOption {
@@ -15,54 +16,10 @@ interface LineItemRow {
   amount: string;
 }
 
-const LINE_ITEM_PRESETS: { group: string; options: string[] }[] = [
-  {
-    group: "Session fees",
-    options: [
-      "Adventure elopement session (4 hrs)",
-      "Half-day adventure session (4 hrs)",
-      "Full-day adventure session (8 hrs)",
-      "Portrait session (1 hr)",
-      "Extended portrait session (2 hrs)",
-      "Engagement session (1.5 hrs)",
-      "Mini session (30 min)",
-    ],
-  },
-  {
-    group: "Wedding coverage",
-    options: [
-      "Wedding day coverage (8 hrs)",
-      "Wedding day coverage (10 hrs)",
-      "Elopement coverage (4 hrs)",
-      "Rehearsal dinner coverage",
-      "Second shooter (full day)",
-    ],
-  },
-  {
-    group: "Add-ons",
-    options: [
-      "Extra hour of coverage",
-      "Second shooter (4 hrs)",
-      "Drone / aerial add-on",
-      "Rush editing (48-hour turnaround)",
-      "Additional edited images (set of 10)",
-      "Engagement session add-on",
-    ],
-  },
-  {
-    group: "Travel & logistics",
-    options: ["Travel fee", "Mileage reimbursement", "Permit / location fee"],
-  },
-  {
-    group: "Deliverables",
-    options: [
-      "Full digital gallery",
-      "Printed album (8x8, 20 pages)",
-      "USB drive, full-resolution images",
-      "Canvas print (16x20)",
-    ],
-  },
-];
+interface Preset {
+  group: string;
+  description: string;
+}
 
 // Native number-input spin buttons only step by whole increments of `step`,
 // which is useless on dollar amounts (clicking 100 times to add a dollar) —
@@ -73,11 +30,13 @@ const noSpinnerClass =
 
 export function NewInvoiceForm({
   contacts,
+  presets,
   defaultContactId,
   defaultLineItems,
   defaultDepositAmount,
 }: {
   contacts: ContactOption[];
+  presets: Preset[];
   defaultContactId?: string;
   defaultLineItems?: LineItemRow[];
   defaultDepositAmount?: string;
@@ -92,6 +51,15 @@ export function NewInvoiceForm({
   const [balanceDueDate, setBalanceDueDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const presetGroups = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const p of presets) {
+      if (!map.has(p.group)) map.set(p.group, []);
+      map.get(p.group)!.push(p.description);
+    }
+    return Array.from(map.entries()).map(([group, options]) => ({ group, options }));
+  }, [presets]);
 
   function updateLineItem(index: number, field: keyof LineItemRow, value: string) {
     setLineItems((rows) => rows.map((row, i) => (i === index ? { ...row, [field]: value } : row)));
@@ -207,7 +175,7 @@ export function NewInvoiceForm({
                 className="rounded-md border border-border bg-background px-2 py-1 text-xs text-muted outline-none focus:border-accent"
               >
                 <option value="">Insert a preset description…</option>
-                {LINE_ITEM_PRESETS.map((group) => (
+                {presetGroups.map((group) => (
                   <optgroup key={group.group} label={group.group}>
                     {group.options.map((opt) => (
                       <option key={opt} value={opt}>
@@ -220,9 +188,14 @@ export function NewInvoiceForm({
             </div>
           ))}
         </div>
-        <button type="button" onClick={addLineItem} className="mt-2 text-xs text-accent hover:underline">
-          + Add line item
-        </button>
+        <div className="mt-2 flex items-center gap-3">
+          <button type="button" onClick={addLineItem} className="text-xs text-accent hover:underline">
+            + Add line item
+          </button>
+          <Link href="/admin/templates?tab=invoices" className="text-xs text-muted hover:text-foreground">
+            Manage presets
+          </Link>
+        </div>
       </div>
 
       <div>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { threadsCol } from "@/lib/firestore-collections";
+import { threadsCol, bookingSessionTypesCol } from "@/lib/firestore-collections";
 import { getBookingSettings } from "@/lib/booking-availability";
 
 // Public, no-auth route — the booking picker's first step: which visit
@@ -12,9 +12,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: "This booking link isn't valid." }, { status: 404 });
   }
 
-  const settings = await getBookingSettings();
+  const [settings, typesSnap] = await Promise.all([getBookingSettings(), bookingSessionTypesCol().get()]);
   return NextResponse.json({
     bookingEnabled: settings.bookingEnabled,
-    sessionTypes: settings.sessionTypes,
+    sessionTypes: typesSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
   });
 }

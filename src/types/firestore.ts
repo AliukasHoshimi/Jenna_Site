@@ -234,13 +234,16 @@ export interface BookingRequest {
 }
 
 // One selectable visit type on the public booking page (e.g. "Mini session
-// — 30 min", "Full session — 2 hr"). id is stable across edits so existing
-// BookingRequests keep resolving correctly even if the name changes later.
+// — 30 min", "Full session — 2 hr"). Its own collection (bookingSessionTypes)
+// rather than an array on BookingSettings — matches every other preset
+// list in this app (one doc per item), edited from the Templates hub.
+// The Firestore doc id is the stable identifier BookingRequest.sessionTypeId
+// references, same as Template/ContractTemplate/etc. don't self-store an id.
 export interface BookingSessionType {
-  id: string;
   name: string;
   durationMinutes: number;
   description: string | null;
+  createdAt: Timestamp;
 }
 
 // Singleton doc (settings/booking). Falls back to sensible hardcoded
@@ -260,5 +263,12 @@ export interface BookingSettings {
   bookingEnabled: boolean;
   // 0 = Sunday .. 6 = Saturday, "HH:mm" 24h local time. Absent = not bookable.
   workingHours: Partial<Record<number, { start: string; end: string }>>;
-  sessionTypes: BookingSessionType[];
+}
+
+// One preset description a line item on a new invoice can be filled from
+// (grouped by `group` in the picker, e.g. "Session fees", "Add-ons").
+export interface InvoiceLineItemPreset {
+  group: string;
+  description: string;
+  createdAt: Timestamp;
 }

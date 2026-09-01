@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { adminDb } from "@/lib/firebase/admin";
-import { threadsCol, bookingRequestsCol, contactsCol, messagesCol } from "@/lib/firestore-collections";
+import { threadsCol, bookingRequestsCol, contactsCol, messagesCol, bookingSessionTypesCol } from "@/lib/firestore-collections";
 import { getFreeBusy } from "@/lib/google-calendar";
 import { getBookingSettings, overlaps, expandByBuffer, formatBusinessTime } from "@/lib/booking-availability";
 import { sendEmail } from "@/lib/mailgun";
@@ -37,7 +37,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!start || !end || !sessionTypeId) {
     return NextResponse.json({ error: "start, end, and sessionTypeId are required" }, { status: 400 });
   }
-  const sessionType = settings.sessionTypes.find((t) => t.id === sessionTypeId);
+  const sessionTypeSnap = await bookingSessionTypesCol().doc(sessionTypeId).get();
+  const sessionType = sessionTypeSnap.data();
   if (!sessionType) {
     return NextResponse.json({ error: "Invalid session type" }, { status: 400 });
   }
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         requestedStart: Timestamp.fromDate(startDate),
         requestedEnd: Timestamp.fromDate(endDate),
         clientNote,
-        sessionTypeId: sessionType.id,
+        sessionTypeId,
         sessionTypeName: sessionType.name,
         status: "pending",
         googleEventId: null,

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { BookingSessionType, BookingSettings } from "@/types/firestore";
+import Link from "next/link";
+import type { BookingSettings } from "@/types/firestore";
 
 const WEEKDAY_LABELS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -37,28 +38,12 @@ export function BookingSettingsForm({ initialSettings }: { initialSettings: Book
   const [bookingWindowDays, setBookingWindowDays] = useState(initialSettings.bookingWindowDays);
   const [requestExpiryHours, setRequestExpiryHours] = useState(initialSettings.requestExpiryHours);
   const [days, setDays] = useState<DayHours[]>(toDayHours(initialSettings.workingHours));
-  const [sessionTypes, setSessionTypes] = useState<BookingSessionType[]>(initialSettings.sessionTypes);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
   function updateDay(index: number, patch: Partial<DayHours>) {
     setDays((prev) => prev.map((d, i) => (i === index ? { ...d, ...patch } : d)));
-  }
-
-  function updateSessionType(index: number, patch: Partial<BookingSessionType>) {
-    setSessionTypes((prev) => prev.map((t, i) => (i === index ? { ...t, ...patch } : t)));
-  }
-
-  function addSessionType() {
-    setSessionTypes((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), name: "New session type", durationMinutes: 60, description: null },
-    ]);
-  }
-
-  function removeSessionType(index: number) {
-    setSessionTypes((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function handleSave() {
@@ -82,7 +67,6 @@ export function BookingSettingsForm({ initialSettings }: { initialSettings: Book
         bookingWindowDays,
         requestExpiryHours,
         workingHours,
-        sessionTypes,
       }),
     });
     const data = await res.json().catch(() => ({}));
@@ -197,55 +181,13 @@ export function BookingSettingsForm({ initialSettings }: { initialSettings: Book
 
       <section>
         <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-muted">Session types</h2>
-        <div className="space-y-3">
-          {sessionTypes.map((t, i) => (
-            <div key={t.id} className="space-y-2 rounded-lg border border-border bg-surface p-4">
-              <div className="grid grid-cols-[1fr_auto] items-start gap-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="mb-1 block text-xs text-muted">Name</label>
-                    <input
-                      value={t.name}
-                      onChange={(e) => updateSessionType(i, { name: e.target.value })}
-                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs text-muted">Duration (minutes)</label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={t.durationMinutes}
-                      onChange={(e) => updateSessionType(i, { durationMinutes: Number(e.target.value) })}
-                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
-                    />
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removeSessionType(i)}
-                  disabled={sessionTypes.length <= 1}
-                  className="mt-5 text-xs text-warm hover:opacity-80 disabled:opacity-30"
-                >
-                  Remove
-                </button>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs text-muted">
-                  Description shown to clients <span className="text-muted/70">(optional)</span>
-                </label>
-                <input
-                  value={t.description ?? ""}
-                  onChange={(e) => updateSessionType(i, { description: e.target.value })}
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
-                />
-              </div>
-            </div>
-          ))}
-          <button type="button" onClick={addSessionType} className="text-sm text-accent hover:underline">
-            + Add session type
-          </button>
-        </div>
+        <p className="text-sm text-muted">
+          Session types (what clients pick from — name, duration, description) are managed in{" "}
+          <Link href="/admin/templates?tab=booking" className="text-accent hover:underline">
+            Templates
+          </Link>
+          .
+        </p>
       </section>
 
       {error && <p className="text-sm text-warm">{error}</p>}

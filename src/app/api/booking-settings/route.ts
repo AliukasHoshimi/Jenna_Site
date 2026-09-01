@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { bookingSettingsDoc } from "@/lib/firestore-collections";
 import { getBookingSettings } from "@/lib/booking-availability";
-import type { BookingSettings, BookingSessionType } from "@/types/firestore";
+import type { BookingSettings } from "@/types/firestore";
 
 export async function GET() {
   const { user, response } = await requireAuth();
@@ -24,7 +24,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 
-  const { timezone, bufferMinutes, minNoticeHours, bookingWindowDays, requestExpiryHours, bookingEnabled, workingHours, sessionTypes } =
+  const { timezone, bufferMinutes, minNoticeHours, bookingWindowDays, requestExpiryHours, bookingEnabled, workingHours } =
     payload as Partial<BookingSettings>;
 
   if (typeof timezone !== "string" || !timezone.trim()) {
@@ -70,31 +70,6 @@ export async function PATCH(request: NextRequest) {
     cleanWorkingHours[day] = { start, end };
   }
 
-  if (!Array.isArray(sessionTypes) || sessionTypes.length === 0) {
-    return NextResponse.json({ error: "At least one session type is required" }, { status: 400 });
-  }
-  const cleanSessionTypes: BookingSessionType[] = [];
-  const seenIds = new Set<string>();
-  for (const t of sessionTypes) {
-    const { id, name, durationMinutes, description } = (t ?? {}) as Partial<BookingSessionType>;
-    if (typeof id !== "string" || !id.trim() || seenIds.has(id)) {
-      return NextResponse.json({ error: "Each session type needs a unique id" }, { status: 400 });
-    }
-    if (typeof name !== "string" || !name.trim()) {
-      return NextResponse.json({ error: "Each session type needs a name" }, { status: 400 });
-    }
-    if (typeof durationMinutes !== "number" || !Number.isFinite(durationMinutes) || durationMinutes <= 0) {
-      return NextResponse.json({ error: `${name} needs a positive duration` }, { status: 400 });
-    }
-    seenIds.add(id);
-    cleanSessionTypes.push({
-      id,
-      name: name.trim(),
-      durationMinutes,
-      description: typeof description === "string" && description.trim() ? description.trim() : null,
-    });
-  }
-
   const clean: BookingSettings = {
     timezone: timezone.trim(),
     // Non-null assertions: the loop above already validated each of these
@@ -106,7 +81,6 @@ export async function PATCH(request: NextRequest) {
     requestExpiryHours: requestExpiryHours!,
     bookingEnabled,
     workingHours: cleanWorkingHours,
-    sessionTypes: cleanSessionTypes,
   };
 
   await bookingSettingsDoc().set(clean);

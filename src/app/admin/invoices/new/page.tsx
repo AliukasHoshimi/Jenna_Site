@@ -1,4 +1,4 @@
-import { contactsCol, invoicesCol } from "@/lib/firestore-collections";
+import { contactsCol, invoicesCol, invoiceLineItemPresetsCol } from "@/lib/firestore-collections";
 import { NewInvoiceForm } from "./new-invoice-form";
 
 export default async function NewInvoicePage({
@@ -7,8 +7,12 @@ export default async function NewInvoicePage({
   searchParams: Promise<{ contactId?: string; duplicateFrom?: string }>;
 }) {
   const { contactId, duplicateFrom } = await searchParams;
-  const snap = await contactsCol().orderBy("lastActivityAt", "desc").get();
+  const [snap, presetsSnap] = await Promise.all([
+    contactsCol().orderBy("lastActivityAt", "desc").get(),
+    invoiceLineItemPresetsCol().orderBy("group", "asc").orderBy("description", "asc").get(),
+  ]);
   const contacts = snap.docs.map((d) => ({ id: d.id, name: d.data().name, email: d.data().email }));
+  const presets = presetsSnap.docs.map((d) => ({ group: d.data().group, description: d.data().description }));
 
   let defaultLineItems: { description: string; amount: string }[] | undefined;
   let defaultDepositAmount: string | undefined;
@@ -31,6 +35,7 @@ export default async function NewInvoicePage({
       <h1 className="mb-6 font-display text-2xl text-foreground">New invoice</h1>
       <NewInvoiceForm
         contacts={contacts}
+        presets={presets}
         defaultContactId={resolvedContactId}
         defaultLineItems={defaultLineItems}
         defaultDepositAmount={defaultDepositAmount}

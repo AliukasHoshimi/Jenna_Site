@@ -1,6 +1,6 @@
 import "server-only";
 import { getFreeBusy } from "@/lib/google-calendar";
-import { bookingRequestsCol, bookingSettingsDoc } from "@/lib/firestore-collections";
+import { bookingRequestsCol, bookingSettingsDoc, bookingSessionTypesCol } from "@/lib/firestore-collections";
 import type { BookingSettings } from "@/types/firestore";
 
 /**
@@ -21,7 +21,6 @@ export const DEFAULT_BOOKING_SETTINGS: BookingSettings = {
     5: { start: "10:00", end: "17:00" }, // Fri
     6: { start: "10:00", end: "17:00" }, // Sat
   },
-  sessionTypes: [{ id: "default", name: "Session", durationMinutes: 60, description: null }],
 };
 
 export async function getBookingSettings(): Promise<BookingSettings> {
@@ -178,7 +177,8 @@ function generateCandidateSlots(
 export async function getAvailableSlots(rangeStart: Date, rangeEnd: Date, sessionTypeId: string): Promise<Slot[]> {
   const settings = await getBookingSettings();
   if (!settings.bookingEnabled) return [];
-  const sessionType = settings.sessionTypes.find((t) => t.id === sessionTypeId);
+  const sessionTypeSnap = await bookingSessionTypesCol().doc(sessionTypeId).get();
+  const sessionType = sessionTypeSnap.data();
   if (!sessionType) return [];
 
   const { bufferMinutes, minNoticeHours, bookingWindowDays } = settings;

@@ -18,6 +18,8 @@ import type {
   CalendarEvent,
   BookingRequest,
   BookingSettings,
+  BookingSessionType,
+  InvoiceLineItemPreset,
 } from "@/types/firestore";
 
 function converter<T extends FirebaseFirestore.DocumentData>(): FirestoreDataConverter<T> {
@@ -80,4 +82,12 @@ export function bookingRequestsCol() {
 
 export function bookingSettingsDoc() {
   return adminDb().collection("settings").doc("booking").withConverter(converter<BookingSettings>());
+}
+
+export function bookingSessionTypesCol() {
+  return adminDb().collection("bookingSessionTypes").withConverter(converter<BookingSessionType>());
+}
+
+export function invoiceLineItemPresetsCol() {
+  return adminDb().collection("invoiceLineItemPresets").withConverter(converter<InvoiceLineItemPreset>());
 }

@@ -24,7 +24,7 @@ export default async function ContractsPage() {
           <Link href="/admin/contracts/archived" className="text-sm text-muted hover:text-foreground">
             Archived
           </Link>
-          <Link href="/admin/contract-templates" className="text-sm text-muted hover:text-foreground">
+          <Link href="/admin/templates?tab=contracts" className="text-sm text-muted hover:text-foreground">
             Manage templates
           </Link>
           <Link

@@ -63,6 +63,14 @@
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "requestedStart", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "invoiceLineItemPresets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "group", "order": "ASCENDING" },
+        { "fieldPath": "description", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
