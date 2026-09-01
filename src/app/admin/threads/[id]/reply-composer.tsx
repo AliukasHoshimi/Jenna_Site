@@ -35,6 +35,7 @@ export function ReplyComposer({
   const [styled, setStyled] = useState(defaultStyled);
   const [sending, setSending] = useState(false);
   const [sendingLink, setSendingLink] = useState(false);
+  const [sendingPortalLink, setSendingPortalLink] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -61,6 +62,20 @@ export function ReplyComposer({
       setBody((prev) => (prev.trim() ? `${prev}\n\n${line}` : line));
     } else {
       setError(data.error ?? "Could not generate a booking link.");
+    }
+  }
+
+  async function handleSendPortalLink() {
+    setSendingPortalLink(true);
+    setError(null);
+    const res = await fetch(`/api/contacts/${contactId}/portal-link`, { method: "POST" });
+    const data = await res.json().catch(() => ({}));
+    setSendingPortalLink(false);
+    if (res.ok && data.url) {
+      const line = `Here's a link to everything on your account: ${data.url}`;
+      setBody((prev) => (prev.trim() ? `${prev}\n\n${line}` : line));
+    } else {
+      setError(data.error ?? "Could not generate a portal link.");
     }
   }
 
@@ -110,6 +125,14 @@ export function ReplyComposer({
           className="text-xs text-accent hover:underline disabled:opacity-60"
         >
           {sendingLink ? "…" : "Send booking link"}
+        </button>
+        <button
+          type="button"
+          onClick={handleSendPortalLink}
+          disabled={sendingPortalLink}
+          className="text-xs text-accent hover:underline disabled:opacity-60"
+        >
+          {sendingPortalLink ? "…" : "Send portal link"}
         </button>
       </div>
       <textarea
