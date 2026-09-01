@@ -44,6 +44,10 @@ export interface Thread {
   // per-thread rather than the contact, since the same person inquiring
   // again later could have an entirely different budget in mind.
   estimatedBudget?: string | null;
+  // Independent of `status` (open/closed) — a bulk-cleanup tool, same
+  // pattern as Invoice/Contract/Questionnaire archiving. Excluded from
+  // the main Open/Closed views and from nav badge counts.
+  archivedAt?: Timestamp | null;
 }
 
 export interface Message {

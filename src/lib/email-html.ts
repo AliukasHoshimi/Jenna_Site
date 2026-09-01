@@ -11,10 +11,23 @@ function escapeHtml(str: string) {
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+// Runs on already-escaped text — escapeHtml never introduces whitespace or
+// `<` into a URL, so this is safe to match against afterward. Without this,
+// a bare URL pasted into the body (e.g. a booking/portal link inserted by
+// the reply composer) just sits there as plain text even in the "styled"
+// HTML email, relying entirely on the recipient's email client to notice
+// and auto-link it.
+function linkifyUrls(escapedText: string) {
+  return escapedText.replace(
+    /https?:\/\/[^\s<]+/g,
+    (url) => `<a href="${url}" style="color:${colors.warm};text-decoration:underline;">${url}</a>`
+  );
+}
+
 function textToParagraphs(text: string) {
   return text
     .split(/\n{2,}/)
-    .map((block) => `<p style="margin:0 0 16px;">${escapeHtml(block).replace(/\n/g, "<br>")}</p>`)
+    .map((block) => `<p style="margin:0 0 16px;">${linkifyUrls(escapeHtml(block).replace(/\n/g, "<br>"))}</p>`)
     .join("");
 }
 

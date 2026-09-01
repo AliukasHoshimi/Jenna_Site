@@ -19,6 +19,7 @@ export default async function ThreadsLayout({ children }: { children: React.Reac
       contactName: contact?.name ?? "Unknown",
       contactEmail: contact?.email ?? "",
       estimatedBudget: t.estimatedBudget ?? null,
+      archived: !!t.archivedAt,
     };
   });
 

@@ -43,6 +43,7 @@ export default async function CalendarPage({
     const data = d.data();
     return {
       id: d.id,
+      googleEventId: data.googleEventId,
       title: data.title,
       contactId: data.contactId,
       start: data.start.toDate().toISOString(),
@@ -107,9 +108,11 @@ export default async function CalendarPage({
           id: r.id,
           sessionTypeName: r.sessionTypeName,
           contactId: r.contactId,
+          contactName: contactsById[r.contactId]?.name ?? "Unknown client",
           threadId: r.threadId,
           start: r.requestedStart.toDate().toISOString(),
           end: r.requestedEnd.toDate().toISOString(),
+          clientNote: r.clientNote,
         }))}
         contactsById={contactsById}
       />

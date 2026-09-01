@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { PendingRequestModal } from "./pending-request-modal";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 interface EventItem {
   id: string;
+  googleEventId: string;
   title: string;
   contactId: string | null;
   start: string;
@@ -17,19 +20,25 @@ interface PendingItem {
   id: string;
   sessionTypeName: string;
   contactId: string | null;
+  contactName: string;
   threadId: string;
   start: string;
   end: string;
+  clientNote: string | null;
 }
 
-interface GridItem {
-  key: string;
+interface ExternalEvent {
+  id: string;
   title: string;
-  contactId: string | null;
   start: string;
-  href: string;
-  pending: boolean;
+  end: string;
+  htmlLink: string | null;
 }
+
+type GridItem =
+  | { kind: "confirmed"; key: string; title: string; contactId: string | null; start: string; href: string }
+  | { kind: "pending"; key: string; title: string; contactId: string | null; start: string; pending: PendingItem }
+  | { kind: "external"; key: string; title: string; contactId: null; start: string; htmlLink: string | null };
 
 export function CalendarGrid({
   events,
@@ -40,8 +49,11 @@ export function CalendarGrid({
   pendingRequests: PendingItem[];
   contactsById: Record<string, { name: string }>;
 }) {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [viewDate, setViewDate] = useState(new Date());
+  const [selectedPending, setSelectedPending] = useState<PendingItem | null>(null);
+  const [externalEvents, setExternalEvents] = useState<ExternalEvent[]>([]);
 
   // Bucketing events into day cells depends on the viewer's local timezone —
   // the server renders in UTC, so this has to happen after mount rather than
@@ -55,30 +67,62 @@ export function CalendarGrid({
   const monthIndex = viewDate.getMonth();
   const today = new Date();
 
+  // Her real Google Calendar for the visible month, refetched on month
+  // navigation — includes personal events and anything booked outside this
+  // app, not just what calendarEventsCol mirrors.
+  useEffect(() => {
+    if (!mounted) return;
+    let cancelled = false;
+    fetch(`/api/google-calendar/events?year=${year}&month=${monthIndex}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled && Array.isArray(data.events)) setExternalEvents(data.events);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [mounted, year, monthIndex]);
+
   const firstWeekday = new Date(year, monthIndex, 1).getDay();
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
   const totalCells = Math.ceil((firstWeekday + daysInMonth) / 7) * 7;
 
+  const knownGoogleEventIds = useMemo(() => new Set(events.map((e) => e.googleEventId)), [events]);
+
   const allItems: GridItem[] = useMemo(
     () => [
-      ...events.map((e) => ({
+      ...events.map((e): GridItem => ({
+        kind: "confirmed",
         key: `event-${e.id}`,
         title: e.title,
         contactId: e.contactId,
         start: e.start,
         href: `/admin/calendar/${e.id}`,
-        pending: false,
       })),
-      ...pendingRequests.map((r) => ({
+      ...pendingRequests.map((r): GridItem => ({
+        kind: "pending",
         key: `pending-${r.id}`,
         title: r.sessionTypeName,
         contactId: r.contactId,
         start: r.start,
-        href: `/admin/threads/${r.threadId}`,
-        pending: true,
+        pending: r,
       })),
+      // Already-mirrored events would otherwise show twice — once as
+      // "confirmed" (from calendarEventsCol) and once here, since her real
+      // calendar includes those same events.
+      ...externalEvents
+        .filter((e) => !knownGoogleEventIds.has(e.id))
+        .map((e): GridItem => ({
+          kind: "external",
+          key: `external-${e.id}`,
+          title: e.title,
+          contactId: null,
+          start: e.start,
+          htmlLink: e.htmlLink,
+        })),
     ],
-    [events, pendingRequests]
+    [events, pendingRequests, externalEvents, knownGoogleEventIds]
   );
 
   const itemsByDay = useMemo(() => {
@@ -107,6 +151,16 @@ export function CalendarGrid({
 
   function goToMonth(delta: number) {
     setViewDate(new Date(year, monthIndex + delta, 1));
+  }
+
+  function pillClassName(kind: GridItem["kind"]) {
+    if (kind === "pending") {
+      return "block truncate rounded border border-dashed border-warm bg-warm/10 px-1 py-0.5 text-[11px] text-warm hover:bg-warm/20";
+    }
+    if (kind === "external") {
+      return "block truncate rounded border border-dashed border-muted/40 bg-muted/10 px-1 py-0.5 text-[11px] text-muted hover:bg-muted/20";
+    }
+    return "block truncate rounded bg-accent/10 px-1 py-0.5 text-[11px] text-accent hover:bg-accent/20";
   }
 
   return (
@@ -144,15 +198,15 @@ export function CalendarGrid({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-border">
-        <div className="grid grid-cols-7 border-b border-border bg-surface">
+      <div className="rounded-lg border border-border">
+        <div className="grid grid-cols-7 rounded-t-lg border-b border-border bg-surface">
           {WEEKDAYS.map((d) => (
             <div key={d} className="px-2 py-2 text-center text-xs font-medium text-muted">
               {d}
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-7">
+        <div className="grid grid-cols-7 [&>*:nth-last-child(-n+7)]:border-b-0">
           {Array.from({ length: totalCells }).map((_, i) => {
             const dayNum = i - firstWeekday + 1;
             const inMonth = dayNum >= 1 && dayNum <= daysInMonth;
@@ -185,17 +239,41 @@ export function CalendarGrid({
                           hour: "numeric",
                           minute: "2-digit",
                         });
+                        const label = `${item.kind === "pending" ? "Pending: " : ""}${item.title}${contact ? ` · ${contact.name}` : ""}`;
+
+                        if (item.kind === "pending") {
+                          return (
+                            <button
+                              key={item.key}
+                              type="button"
+                              onClick={() => setSelectedPending(item.pending)}
+                              title={label}
+                              className={`w-full text-left ${pillClassName(item.kind)}`}
+                            >
+                              {time} {item.title}
+                            </button>
+                          );
+                        }
+                        if (item.kind === "external") {
+                          return item.htmlLink ? (
+                            <a
+                              key={item.key}
+                              href={item.htmlLink}
+                              target="_blank"
+                              rel="noreferrer"
+                              title={label}
+                              className={pillClassName(item.kind)}
+                            >
+                              {time} {item.title}
+                            </a>
+                          ) : (
+                            <span key={item.key} title={label} className={pillClassName(item.kind)}>
+                              {time} {item.title}
+                            </span>
+                          );
+                        }
                         return (
-                          <Link
-                            key={item.key}
-                            href={item.href}
-                            title={`${item.pending ? "Pending: " : ""}${item.title}${contact ? ` · ${contact.name}` : ""}`}
-                            className={
-                              item.pending
-                                ? "block truncate rounded border border-dashed border-warm bg-warm/10 px-1 py-0.5 text-[11px] text-warm hover:bg-warm/20"
-                                : "block truncate rounded bg-accent/10 px-1 py-0.5 text-[11px] text-accent hover:bg-accent/20"
-                            }
-                          >
+                          <Link key={item.key} href={item.href} title={label} className={pillClassName(item.kind)}>
                             {time} {item.title}
                           </Link>
                         );
@@ -211,6 +289,25 @@ export function CalendarGrid({
           })}
         </div>
       </div>
+
+      {selectedPending && (
+        <PendingRequestModal
+          item={{
+            id: selectedPending.id,
+            sessionTypeName: selectedPending.sessionTypeName,
+            contactName: selectedPending.contactName,
+            threadId: selectedPending.threadId,
+            startIso: selectedPending.start,
+            endIso: selectedPending.end,
+            clientNote: selectedPending.clientNote,
+          }}
+          onClose={() => setSelectedPending(null)}
+          onDone={() => {
+            setSelectedPending(null);
+            router.refresh();
+          }}
+        />
+      )}
     </div>
   );
 }

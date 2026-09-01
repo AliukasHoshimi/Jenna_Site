@@ -20,7 +20,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       bookingRequestsCol().where("status", "==", "pending").get(),
     ]);
   const needsReplyCount = openThreadsSnap.docs.filter(
-    (d) => d.data().lastMessageDirection === "inbound"
+    (d) => d.data().lastMessageDirection === "inbound" && !d.data().archivedAt
   ).length;
   const balanceDueCount = depositPaidSnap.docs.filter((d) => {
     const invoice = d.data();

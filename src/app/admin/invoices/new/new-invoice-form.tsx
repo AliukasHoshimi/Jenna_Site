@@ -32,12 +32,14 @@ export function NewInvoiceForm({
   contacts,
   presets,
   defaultContactId,
+  defaultThreadId,
   defaultLineItems,
   defaultDepositAmount,
 }: {
   contacts: ContactOption[];
   presets: Preset[];
   defaultContactId?: string;
+  defaultThreadId?: string;
   defaultLineItems?: LineItemRow[];
   defaultDepositAmount?: string;
 }) {
@@ -102,6 +104,7 @@ export function NewInvoiceForm({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contactId,
+        threadId: defaultThreadId ?? null,
         dueDate,
         lineItems: parsedItems,
         currency: "usd",

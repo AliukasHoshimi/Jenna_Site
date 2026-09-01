@@ -139,7 +139,7 @@ export function ContactHeader({ contact }: { contact: ContactData }) {
         <h1 className="font-display text-2xl text-foreground">{contact.name}</h1>
         <p className="mb-1 text-sm text-muted">{contact.email}</p>
         {contact.phone && <p className="text-sm text-muted">{contact.phone}</p>}
-        {contact.instagram && <p className="text-sm text-muted">@{contact.instagram}</p>}
+        {contact.instagram && <p className="text-sm text-muted">@{contact.instagram.replace(/^@/, "")}</p>}
       </div>
       <div className="flex items-center gap-2">
         <select

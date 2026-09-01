@@ -4,9 +4,9 @@ import { NewInvoiceForm } from "./new-invoice-form";
 export default async function NewInvoicePage({
   searchParams,
 }: {
-  searchParams: Promise<{ contactId?: string; duplicateFrom?: string }>;
+  searchParams: Promise<{ contactId?: string; threadId?: string; duplicateFrom?: string }>;
 }) {
-  const { contactId, duplicateFrom } = await searchParams;
+  const { contactId, threadId, duplicateFrom } = await searchParams;
   const [snap, presetsSnap] = await Promise.all([
     contactsCol().orderBy("lastActivityAt", "desc").get(),
     invoiceLineItemPresetsCol().orderBy("group", "asc").orderBy("description", "asc").get(),
@@ -37,6 +37,7 @@ export default async function NewInvoicePage({
         contacts={contacts}
         presets={presets}
         defaultContactId={resolvedContactId}
+        defaultThreadId={threadId}
         defaultLineItems={defaultLineItems}
         defaultDepositAmount={defaultDepositAmount}
       />

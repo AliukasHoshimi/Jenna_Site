@@ -36,7 +36,16 @@ export async function POST(request: NextRequest) {
   let contactId: string;
   if (!existingContact.empty) {
     contactId = existingContact.docs[0].id;
-    await contactsCol().doc(contactId).update({ lastActivityAt: FieldValue.serverTimestamp() });
+    // A repeat inquiry may fill in details (phone, Instagram) that weren't
+    // captured the first time — apply them, but never blank out a value
+    // she's already recorded just because this submission left it empty.
+    await contactsCol()
+      .doc(contactId)
+      .update({
+        lastActivityAt: FieldValue.serverTimestamp(),
+        ...(phone ? { phone } : {}),
+        ...(instagram ? { instagram } : {}),
+      });
   } else {
     const newContact = await contactsCol().add({
       name,
