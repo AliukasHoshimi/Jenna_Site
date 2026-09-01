@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Timestamp } from "firebase-admin/firestore";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { calendarEventsCol } from "@/lib/firestore-collections";
-import { getCalendarClient } from "@/lib/google-calendar";
+import { getCalendarClient, deleteGoogleCalendarEvent } from "@/lib/google-calendar";
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { user, response } = await requireAuth();
@@ -69,18 +69,15 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
   const event = eventSnap.data()!;
 
   try {
-    const calendar = await getCalendarClient();
-    await calendar.events.delete({ calendarId: "primary", eventId: event.googleEventId, sendUpdates: "all" });
+    // Already-gone (404/410) is swallowed inside deleteGoogleCalendarEvent,
+    // so it falls through to the cleanup below instead of erroring here —
+    // only a real failure lands in this catch.
+    await deleteGoogleCalendarEvent(event.googleEventId);
   } catch (err) {
-    // If Google's copy is already gone, still clean up our index record
-    // instead of leaving a dangling row the UI can never delete.
-    const status = (err as { code?: number; status?: number })?.status ?? (err as { code?: number })?.code;
-    if (status !== 410 && status !== 404) {
-      return NextResponse.json(
-        { error: err instanceof Error ? err.message : "Could not delete event" },
-        { status: 502 }
-      );
-    }
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Could not delete event" },
+      { status: 502 }
+    );
   }
 
   await eventRef.delete();

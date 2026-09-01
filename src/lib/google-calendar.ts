@@ -123,6 +123,22 @@ export async function insertGoogleCalendarEvent(input: CalendarEventInput) {
   return { googleEventId: googleEvent.id!, htmlLink: googleEvent.htmlLink ?? "" };
 }
 
+/**
+ * Deletes a Google Calendar event, tolerating the case where it's already
+ * gone (404/410) — rethrows anything else. Shared by the manual delete
+ * route and the client-initiated booking-cancel route so both handle an
+ * already-vanished event the same way instead of drifting apart.
+ */
+export async function deleteGoogleCalendarEvent(googleEventId: string): Promise<void> {
+  const calendar = await getCalendarClient();
+  try {
+    await calendar.events.delete({ calendarId: "primary", eventId: googleEventId, sendUpdates: "all" });
+  } catch (err) {
+    const status = (err as { code?: number; status?: number })?.status ?? (err as { code?: number })?.code;
+    if (status !== 410 && status !== 404) throw err;
+  }
+}
+
 /** Firestore mirror doc for an already-created Google Calendar event. */
 export async function createCalendarEventMirror(input: {
   googleEventId: string;

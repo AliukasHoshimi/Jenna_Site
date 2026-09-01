@@ -187,12 +187,19 @@ export interface CalendarEvent {
   createdAt: Timestamp;
 }
 
-// "approving" is a short-lived transactional state used only inside the
-// approve endpoint's status-guard transaction — it exists specifically to
-// make a double-click (or two open tabs) approving the same request
-// impossible, by giving the second attempt a non-"pending" status to bounce
-// off before either touches Google Calendar.
-export type BookingRequestStatus = "pending" | "approving" | "approved" | "declined" | "expired" | "cancelled";
+// "approving"/"cancelling" are short-lived transactional states used only
+// inside their respective endpoint's status-guard transaction — each exists
+// specifically to make a double-click (or two open tabs/requests) racing
+// the same request impossible, by giving the second attempt a non-source
+// status to bounce off before either touches Google Calendar.
+export type BookingRequestStatus =
+  | "pending"
+  | "approving"
+  | "approved"
+  | "declined"
+  | "expired"
+  | "cancelled"
+  | "cancelling";
 
 // One doc per client slot-request attempt submitted through a thread's
 // /book/[token] link (see Thread.bookingToken) — not one doc per link, since

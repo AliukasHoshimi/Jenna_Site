@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { DateCalendarDropdown } from "./date-calendar-dropdown";
+import { MyBookingsPanel } from "./my-bookings-panel";
 
 interface Slot {
   start: string;
@@ -65,6 +66,20 @@ export function BookingPicker({ token }: { token: string }) {
     loadAvailability(type.id);
   }
 
+  // Reschedule = cancel the old booking (handled by MyBookingsPanel), then
+  // drop the client straight back into the type-picker for a fresh pick,
+  // even if they'd already reached the "request sent" screen for a
+  // different attempt.
+  function resetToTypePicker() {
+    setDone(false);
+    setSelectedType(null);
+    setSlots(null);
+    setSelectedDay(null);
+    setSelectedSlot(null);
+    setNote("");
+    setError(null);
+  }
+
   // Grouped by the viewer's own browser-local calendar date — the API
   // returns real UTC instants, and letting the browser apply its own local
   // zone (same idea as LocalDateTime elsewhere in this app) is the
@@ -116,44 +131,69 @@ export function BookingPicker({ token }: { token: string }) {
     }
   }
 
+  const myBookings = <MyBookingsPanel token={token} onReschedule={resetToTypePicker} />;
+
   if (done) {
     return (
-      <div className="rounded-lg border border-border bg-surface p-4 text-sm">
-        <p className="font-medium text-foreground">Request sent!</p>
-        <p className="mt-1 text-muted">Jenna will confirm shortly — you&apos;ll get an email either way.</p>
+      <div className="space-y-4">
+        {myBookings}
+        <div className="rounded-lg border border-border bg-surface p-4 text-sm">
+          <p className="font-medium text-foreground">Request sent!</p>
+          <p className="mt-1 text-muted">Jenna will confirm shortly — you&apos;ll get an email either way.</p>
+        </div>
       </div>
     );
   }
 
   if (typesError) {
-    return <p className="text-sm text-warm">{typesError}</p>;
+    return (
+      <div className="space-y-4">
+        {myBookings}
+        <p className="text-sm text-warm">{typesError}</p>
+      </div>
+    );
   }
 
   if (sessionTypes === null) {
-    return <p className="text-sm text-muted">Loading…</p>;
+    return (
+      <div className="space-y-4">
+        {myBookings}
+        <p className="text-sm text-muted">Loading…</p>
+      </div>
+    );
   }
 
   if (!bookingEnabled) {
-    return <p className="text-sm text-muted">Jenna isn&apos;t currently accepting new booking requests — please reply to the email instead.</p>;
+    return (
+      <div className="space-y-4">
+        {myBookings}
+        <p className="text-sm text-muted">
+          Jenna isn&apos;t currently accepting new booking requests — please reply to the email instead.
+        </p>
+      </div>
+    );
   }
 
   if (!selectedType) {
     return (
-      <div className="space-y-3">
-        <p className="text-sm text-muted">What kind of session would you like to book?</p>
-        {sessionTypes.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => handleSelectType(t)}
-            className="block w-full rounded-lg border border-border bg-surface p-4 text-left hover:border-accent"
-          >
-            <p className="text-sm font-medium text-foreground">
-              {t.name} <span className="font-normal text-muted">· {t.durationMinutes} min</span>
-            </p>
-            {t.description && <p className="mt-1 text-xs text-muted">{t.description}</p>}
-          </button>
-        ))}
+      <div className="space-y-4">
+        {myBookings}
+        <div className="space-y-3">
+          <p className="text-sm text-muted">What kind of session would you like to book?</p>
+          {sessionTypes.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => handleSelectType(t)}
+              className="block w-full rounded-lg border border-border bg-surface p-4 text-left hover:border-accent"
+            >
+              <p className="text-sm font-medium text-foreground">
+                {t.name} <span className="font-normal text-muted">· {t.durationMinutes} min</span>
+              </p>
+              {t.description && <p className="mt-1 text-xs text-muted">{t.description}</p>}
+            </button>
+          ))}
+        </div>
       </div>
     );
   }
@@ -162,6 +202,8 @@ export function BookingPicker({ token }: { token: string }) {
 
   return (
     <div className="space-y-4">
+      {myBookings}
+
       <button
         type="button"
         onClick={() => {
