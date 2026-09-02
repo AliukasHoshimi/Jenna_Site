@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { invoicesCol, contactsCol, threadsCol, messagesCol } from "@/lib/firestore-collections";
 import { stripe } from "@/lib/stripe";
-import { sendEmail, replyAddressForToken } from "@/lib/mailgun";
+import { sendEmail } from "@/lib/mailgun";
 import { renderInvoicePdf } from "@/lib/pdf/render-invoice-pdf";
 import { renderEmailHtml } from "@/lib/email-html";
 import { FieldValue } from "firebase-admin/firestore";
+import { getOrCreateThreadReplyTo } from "@/lib/thread-reply";
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { user, response } = await requireAuth();
@@ -58,12 +59,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       { depositAmount: invoice.depositAmount, stage: "balance" }
     );
 
-    let replyTo = `Jenna | Samsarafilmss <${process.env.MAILGUN_FROM_REPLIES}>`;
-    if (invoice.threadId) {
-      const threadSnap = await threadsCol().doc(invoice.threadId).get();
-      const thread = threadSnap.data();
-      if (thread) replyTo = replyAddressForToken(thread.replyToken);
-    }
+    const { replyTo, threadId } = await getOrCreateThreadReplyTo({
+      contactId: invoice.contactId,
+      threadId: invoice.threadId,
+      subject: `Invoice #${invoice.invoiceNumber}`,
+    });
 
     const emailText = `Hi ${contact.name},\n\nThe remaining balance on invoice #${invoice.invoiceNumber} is now due: ${invoice.currency.toUpperCase()} ${balanceDue.toFixed(
       2
@@ -87,18 +87,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       stripeCheckoutSessionId: checkoutSessionId,
       stripeCheckoutUrl: checkoutUrl,
       lastReminderSentAt: null,
+      threadId,
     });
 
-    if (invoice.threadId) {
-      await messagesCol(invoice.threadId).add({
-        direction: "system",
-        body: `Invoice #${invoice.invoiceNumber} — balance invoice sent, ${invoice.currency.toUpperCase()} ${balanceDue.toFixed(2)} due`,
-        mailgunMessageId: null,
-        createdAt: FieldValue.serverTimestamp(),
-        linkHref: `/admin/invoices/${id}`,
-      });
-      await threadsCol().doc(invoice.threadId).update({ lastMessageAt: FieldValue.serverTimestamp() });
-    }
+    await messagesCol(threadId).add({
+      direction: "system",
+      body: `Invoice #${invoice.invoiceNumber} — balance invoice sent, ${invoice.currency.toUpperCase()} ${balanceDue.toFixed(2)} due`,
+      mailgunMessageId: null,
+      createdAt: FieldValue.serverTimestamp(),
+      linkHref: `/admin/invoices/${id}`,
+    });
+    await threadsCol().doc(threadId).update({ lastMessageAt: FieldValue.serverTimestamp() });
 
     return NextResponse.json({ ok: true, checkoutUrl });
   } catch (err) {

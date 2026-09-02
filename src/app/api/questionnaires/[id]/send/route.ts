@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { questionnairesCol, contactsCol, threadsCol, messagesCol } from "@/lib/firestore-collections";
-import { sendEmail, replyAddressForToken } from "@/lib/mailgun";
+import { sendEmail } from "@/lib/mailgun";
 import { renderEmailHtml } from "@/lib/email-html";
+import { getOrCreateThreadReplyTo } from "@/lib/thread-reply";
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { user, response } = await requireAuth();
@@ -28,12 +29,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const respondUrl = `${request.nextUrl.origin}/respond/${questionnaire.respondToken}`;
 
-  let replyTo = `Jenna | Samsarafilmss <${process.env.MAILGUN_FROM_REPLIES}>`;
-  if (questionnaire.threadId) {
-    const threadSnap = await threadsCol().doc(questionnaire.threadId).get();
-    const thread = threadSnap.data();
-    if (thread) replyTo = replyAddressForToken(thread.replyToken);
-  }
+  const { replyTo, threadId } = await getOrCreateThreadReplyTo({
+    contactId: questionnaire.contactId,
+    threadId: questionnaire.threadId,
+    subject: questionnaire.title,
+  });
 
   try {
     await sendEmail({
@@ -54,18 +54,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     );
   }
 
-  await questionnaireRef.update({ status: "sent", sentAt: FieldValue.serverTimestamp() });
+  await questionnaireRef.update({ status: "sent", sentAt: FieldValue.serverTimestamp(), threadId });
 
-  if (questionnaire.threadId) {
-    await messagesCol(questionnaire.threadId).add({
-      direction: "system",
-      body: `Questionnaire "${questionnaire.title}" sent`,
-      mailgunMessageId: null,
-      createdAt: FieldValue.serverTimestamp(),
-      linkHref: `/admin/questionnaires/${id}`,
-    });
-    await threadsCol().doc(questionnaire.threadId).update({ lastMessageAt: FieldValue.serverTimestamp() });
-  }
+  await messagesCol(threadId).add({
+    direction: "system",
+    body: `Questionnaire "${questionnaire.title}" sent`,
+    mailgunMessageId: null,
+    createdAt: FieldValue.serverTimestamp(),
+    linkHref: `/admin/questionnaires/${id}`,
+  });
+  await threadsCol().doc(threadId).update({ lastMessageAt: FieldValue.serverTimestamp() });
 
   return NextResponse.json({ ok: true, respondUrl });
 }

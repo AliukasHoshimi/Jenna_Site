@@ -4,6 +4,7 @@ import { requireAuth } from "@/lib/auth/require-auth";
 import { contractsCol, contactsCol, messagesCol, threadsCol } from "@/lib/firestore-collections";
 import { sendEmail } from "@/lib/mailgun";
 import { renderEmailHtml } from "@/lib/email-html";
+import { getOrCreateThreadReplyTo } from "@/lib/thread-reply";
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { user, response } = await requireAuth();
@@ -29,6 +30,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const signUrl = `${request.nextUrl.origin}/sign/${contract.signToken}`;
   const emailText = `Hi ${contact.name},\n\nPlease review and sign your contract, "${contract.title}", here:\n${signUrl}\n\nThanks,\nJenna`;
 
+  const { replyTo, threadId } = await getOrCreateThreadReplyTo({
+    contactId: contract.contactId,
+    threadId: contract.threadId,
+    subject: contract.title,
+  });
+
   try {
     await sendEmail({
       to: contact.email,
@@ -39,7 +46,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         ctaLabel: "Review & sign",
         ctaUrl: signUrl,
       }),
-      replyTo: process.env.MAILGUN_FROM_REPLIES!,
+      replyTo,
     });
   } catch (err) {
     return NextResponse.json(
@@ -48,18 +55,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     );
   }
 
-  await contractRef.update({ status: "sent", sentAt: FieldValue.serverTimestamp() });
+  await contractRef.update({ status: "sent", sentAt: FieldValue.serverTimestamp(), threadId });
 
-  if (contract.threadId) {
-    await messagesCol(contract.threadId).add({
-      direction: "system",
-      body: `Contract "${contract.title}" sent`,
-      mailgunMessageId: null,
-      createdAt: FieldValue.serverTimestamp(),
-      linkHref: `/admin/contracts/${id}`,
-    });
-    await threadsCol().doc(contract.threadId).update({ lastMessageAt: FieldValue.serverTimestamp() });
-  }
+  await messagesCol(threadId).add({
+    direction: "system",
+    body: `Contract "${contract.title}" sent`,
+    mailgunMessageId: null,
+    createdAt: FieldValue.serverTimestamp(),
+    linkHref: `/admin/contracts/${id}`,
+  });
+  await threadsCol().doc(threadId).update({ lastMessageAt: FieldValue.serverTimestamp() });
 
   return NextResponse.json({ ok: true, signUrl });
 }
