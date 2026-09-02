@@ -64,7 +64,7 @@ export default function PrivacyPolicyPage() {
         <section>
           <h2 className="mb-1 font-medium text-foreground">Contact</h2>
           <p>
-            Questions about this policy: <span className="text-foreground">aliukashoshimi@gmail.com</span>
+            Questions about this policy: <span className="text-foreground">jenna.mcmullen12@gmail.com</span>
           </p>
         </section>
       </div>

@@ -39,3 +39,11 @@ env:
     secret: INTAKE_API_SECRET
   - variable: NOTIFY_EMAIL
     secret: NOTIFY_EMAIL
+  - variable: CRON_SECRET
+    secret: CRON_SECRET
+  - variable: ADMIN_EMAIL
+    secret: ADMIN_EMAIL
+  - variable: GOOGLE_CALENDAR_CLIENT_ID
+    secret: GOOGLE_CALENDAR_CLIENT_ID
+  - variable: GOOGLE_CALENDAR_CLIENT_SECRET
+    secret: GOOGLE_CALENDAR_CLIENT_SECRET
