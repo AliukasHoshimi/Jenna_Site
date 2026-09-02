@@ -35,10 +35,16 @@ interface ExternalEvent {
   htmlLink: string | null;
 }
 
+// She already tags shoot/work events with a camera emoji in the title on
+// her real Google Calendar (e.g. "Madison & Josh Elopement!📸") — reusing
+// that existing signal to color-code external events needs no new habit
+// from her, unlike Google's own per-event colors, which she doesn't use.
+const WORK_EVENT_PATTERN = /[\u{1F4F8}\u{1F4F7}]/u;
+
 type GridItem =
   | { kind: "confirmed"; key: string; title: string; contactId: string | null; start: string; href: string }
   | { kind: "pending"; key: string; title: string; contactId: string | null; start: string; pending: PendingItem }
-  | { kind: "external"; key: string; title: string; contactId: null; start: string; htmlLink: string | null };
+  | { kind: "external"; key: string; title: string; contactId: null; start: string; htmlLink: string | null; isWork: boolean };
 
 export function CalendarGrid({
   events,
@@ -120,6 +126,7 @@ export function CalendarGrid({
           contactId: null,
           start: e.start,
           htmlLink: e.htmlLink,
+          isWork: WORK_EVENT_PATTERN.test(e.title),
         })),
     ],
     [events, pendingRequests, externalEvents, knownGoogleEventIds]
@@ -153,12 +160,14 @@ export function CalendarGrid({
     setViewDate(new Date(year, monthIndex + delta, 1));
   }
 
-  function pillClassName(kind: GridItem["kind"]) {
+  function pillClassName(kind: GridItem["kind"], isWork?: boolean) {
     if (kind === "pending") {
       return "block truncate rounded border border-dashed border-warm bg-warm/10 px-1 py-0.5 text-[11px] text-warm hover:bg-warm/20";
     }
     if (kind === "external") {
-      return "block truncate rounded border border-dashed border-muted/40 bg-muted/10 px-1 py-0.5 text-[11px] text-muted hover:bg-muted/20";
+      return isWork
+        ? "block truncate rounded border border-dashed border-success/40 bg-success/10 px-1 py-0.5 text-[11px] text-success hover:bg-success/20"
+        : "block truncate rounded border border-dashed border-muted/40 bg-muted/10 px-1 py-0.5 text-[11px] text-muted hover:bg-muted/20";
     }
     return "block truncate rounded bg-accent/10 px-1 py-0.5 text-[11px] text-accent hover:bg-accent/20";
   }
@@ -192,6 +201,20 @@ export function CalendarGrid({
               {pendingRequests.length} pending
             </span>
           )}
+          <div className="flex items-center gap-3 text-xs text-muted">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-accent" />
+              Booked
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full border border-dashed border-success" />
+              Work (📸)
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full border border-dashed border-muted" />
+              Personal
+            </span>
+          </div>
           <button type="button" onClick={() => setViewDate(new Date())} className="text-xs text-accent hover:underline">
             Today
           </button>
@@ -262,12 +285,12 @@ export function CalendarGrid({
                               target="_blank"
                               rel="noreferrer"
                               title={label}
-                              className={pillClassName(item.kind)}
+                              className={pillClassName(item.kind, item.isWork)}
                             >
                               {time} {item.title}
                             </a>
                           ) : (
-                            <span key={item.key} title={label} className={pillClassName(item.kind)}>
+                            <span key={item.key} title={label} className={pillClassName(item.kind, item.isWork)}>
                               {time} {item.title}
                             </span>
                           );
